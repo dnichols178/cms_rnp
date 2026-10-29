@@ -659,19 +659,43 @@ function render_view(string|array $view_input, string $display_id = '', array $e
 
             <!-- Pagination -->
             <?php if (!empty($disp['use_pager']) && $query_result['total_pages'] > 1): ?>
-                <div class="view-pagination" style="display:flex; justify-content:center; gap:6px; margin:25px 0;">
-                    <?php for ($p = 1; $p <= $query_result['total_pages']; $p++): ?>
+                <?php
+                    $cur = (int)$query_result['current_page'];
+                    $tot = (int)$query_result['total_pages'];
+                    $window = 10;
+                    $start = $cur;
+                    $end   = min($tot, $start + $window - 1);
+                    if (($end - $start + 1) < $window) {
+                        $start = max(1, $end - $window + 1);
+                    }
+                ?>
+                <div class="view-pagination" style="display:flex; justify-content:center; align-items:center; gap:6px; margin:25px 0;">
+                    <?php if ($cur > 1): ?>
+                        <?php $q = $merged_exposed; $q['vpage'] = $cur - 1; ?>
+                        <a href="?<?= http_build_query($q) ?>" style="padding:6px 12px; border-radius:4px; text-decoration:none; font-weight:700; font-size:0.85rem; background:#f1f5f9; color:#334155;">&laquo; Prev</a>
+                    <?php endif; ?>
+
+                    <?php for ($p = $start; $p <= $end; $p++): ?>
                         <?php 
                             $q = $merged_exposed;
                             $q['vpage'] = $p;
-                            $page_url = '?' . http_build_query($q);
-                            $is_current = ($p === $query_result['current_page']);
+                            $is_current = ($p === $cur);
                         ?>
-                        <a href="<?= $page_url ?>" style="padding:6px 12px; border-radius:4px; text-decoration:none; font-weight:700; font-size:0.85rem; <?= $is_current ? 'background:#0b2545; color:#ffffff;' : 'background:#f1f5f9; color:#334155;' ?>">
+                        <a href="?<?= http_build_query($q) ?>" style="padding:6px 12px; border-radius:4px; text-decoration:none; font-weight:700; font-size:0.85rem; <?= $is_current ? 'background:#0b2545; color:#ffffff;' : 'background:#f1f5f9; color:#334155;' ?>">
                             <?= $p ?>
                         </a>
                     <?php endfor; ?>
+
+                    <?php if ($end < $tot): ?>
+                        <span style="padding:6px 4px; font-weight:700; color:#64748b; font-size:1rem; user-select:none;">...</span>
+                    <?php endif; ?>
+
+                    <?php if ($cur < $tot): ?>
+                        <?php $q = $merged_exposed; $q['vpage'] = $cur + 1; ?>
+                        <a href="?<?= http_build_query($q) ?>" style="padding:6px 12px; border-radius:4px; text-decoration:none; font-weight:700; font-size:0.85rem; background:#f1f5f9; color:#334155;">Next &raquo;</a>
+                    <?php endif; ?>
                 </div>
+            <?php endif; ?>
             <?php endif; ?>
         <?php endif; ?>
     </div>
