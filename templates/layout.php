@@ -129,14 +129,24 @@ $body_class_attr = !empty($body_classes) ? ' class="' . htmlspecialchars(implode
         <?php else: ?>
             <section class="skydio-hero-wrapper" id="homeHero">
                 <?php
-// Resolve hero poster image with .webp to .jpg fallback
-$hero_poster_url = get_site_setting('home_hero_poster', base_path('assets/img/hero-poster.webp'));
-$accepts_webp    = isset($_SERVER['HTTP_ACCEPT']) && str_contains(strtolower($_SERVER['HTTP_ACCEPT']), 'image/webp');
+// Physical filesystem paths
+$webp_fs_path = __DIR__ . '/../assets/img/hero-poster.webp';
+$jpg_fs_path  = __DIR__ . '/../assets/img/hero-poster.jpg';
 
-if (!$accepts_webp && str_ends_with(strtolower($hero_poster_url), '.webp')) {
-    $hero_poster_url = preg_replace('/\.webp$/i', '.jpg', $hero_poster_url);
+// Check browser support via Accept header
+$accepts_webp = isset($_SERVER['HTTP_ACCEPT']) && str_contains(strtolower($_SERVER['HTTP_ACCEPT']), 'image/webp');
+
+// Serve WebP only if browser accepts it AND the physical file exists
+if ($accepts_webp && file_exists($webp_fs_path)) {
+    $hero_poster_url = base_path('assets/img/hero-poster.webp');
+} elseif (file_exists($jpg_fs_path)) {
+    $hero_poster_url = base_path('assets/img/hero-poster.jpg');
+} else {
+    // Database or global fallback
+    $hero_poster_url = get_site_setting('home_hero_poster', base_path('assets/img/hero-poster.jpg'));
 }
 ?>
+
 <div class="video-crop-container">
     <video class="hero-video-element" autoplay muted loop playsinline preload="metadata" poster="<?= htmlspecialchars($hero_poster_url, ENT_QUOTES, 'UTF-8') ?>" aria-hidden="true">
         <source src="<?= base_path('assets/video/deactivation-loop.mp4') ?>" type="video/mp4">
