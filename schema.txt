@@ -1,0 +1,244 @@
+localhost/information_schema/COLUMNS/		http://100.115.92.26/phpmyadmin/index.php?route=/database/sql&db=frnp_cms
+
+   Showing rows 0 - 221 (222 total, Query took 0.0022 seconds.) [TABLE_NAME: ANALYTICS_HITS... - WATCHDOG...]
+
+
+SELECT
+    TABLE_NAME,
+    COLUMN_NAME,
+    COLUMN_TYPE,
+    IS_NULLABLE,
+    COLUMN_DEFAULT,
+    COLUMN_KEY,
+    EXTRA,
+    COLUMN_COMMENT
+FROM information_schema.COLUMNS
+WHERE TABLE_SCHEMA = 'frnp_cms'
+ORDER BY TABLE_NAME, ORDINAL_POSITION;
+
+
+TABLE_NAME   	COLUMN_NAME	COLUMN_TYPE	IS_NULLABLE	COLUMN_DEFAULT	COLUMN_KEY	EXTRA	COLUMN_COMMENT	
+analytics_hits	id	bigint(20) unsigned	NO	NULL	PRI	auto_increment		
+analytics_hits	path	varchar(255)	NO	NULL				
+analytics_hits	node_id	int(10) unsigned	YES	NULL	MUL			
+analytics_hits	ip_address	varchar(45)	NO	NULL				
+analytics_hits	user_agent	varchar(255)	YES	NULL				
+analytics_hits	referer	varchar(255)	YES	NULL				
+analytics_hits	device_type	enum('desktop','mobile','tablet','bot')	NO	'desktop'				
+analytics_hits	session_hash	char(32)	NO	NULL	MUL			
+analytics_hits	is_staff	tinyint(1)	NO	0				
+analytics_hits	created_at	datetime	NO	current_timestamp()	MUL			
+blocks	id	int(10) unsigned	NO	NULL	PRI	auto_increment		
+blocks	title	varchar(100)	NO	NULL				
+blocks	region	varchar(32)	NO	'sidebar'				
+blocks	body	mediumtext	NO	NULL				
+blocks	weight	int(11)	NO	0				
+blocks	status	tinyint(1)	NO	1				
+blocks	visibility_pages	text	YES	NULL				
+blocks	visibility_mode	enum('show_except','show_only')	NO	'show_only'				
+blocks	visibility_types	varchar(255)	YES	''				
+blocks	visibility_roles	varchar(255)	YES	''				
+cache_data	cid	varchar(128)	NO	NULL	PRI			
+cache_data	data	longtext	NO	NULL				
+cache_data	expire	int(11)	NO	0				
+cache_data	created_at	datetime	NO	current_timestamp()				
+contact_submissions	id	int(10) unsigned	NO	NULL	PRI	auto_increment		
+contact_submissions	name	varchar(100)	NO	NULL				
+contact_submissions	email	varchar(254)	NO	NULL				
+contact_submissions	subject	varchar(150)	NO	NULL				
+contact_submissions	message	text	NO	NULL				
+contact_submissions	ip_address	varchar(45)	NO	NULL				
+contact_submissions	status	varchar(20)	NO	'unread'				
+contact_submissions	created_at	datetime	NO	current_timestamp()				
+content_types	id	int(10) unsigned	NO	NULL	PRI	auto_increment		
+content_types	type	varchar(32)	NO	NULL	UNI			
+content_types	name	varchar(64)	NO	NULL				
+content_types	description	text	YES	NULL				
+content_types	has_body	tinyint(1)	NO	1				
+content_types	url_pattern	varchar(255)	YES	'[node:title]'				
+content_types	fields_schema	longtext	YES	NULL				
+content_types	created_at	datetime	NO	current_timestamp()				
+custom_rules	id	int(10) unsigned	NO	NULL	PRI	auto_increment		
+custom_rules	label	varchar(128)	NO	NULL				
+custom_rules	machine_name	varchar(64)	NO	NULL	UNI			
+custom_rules	event	varchar(64)	NO	NULL	MUL			
+custom_rules	conditions	longtext	YES	NULL				
+custom_rules	actions	longtext	NO	NULL				
+custom_rules	status	tinyint(1)	NO	1				
+custom_rules	created_at	datetime	NO	current_timestamp()				
+custom_rules	updated_at	datetime	NO	current_timestamp()		on update current_timestamp()		
+email_logs	id	int(10) unsigned	NO	NULL	PRI	auto_increment		
+email_logs	recipient	varchar(254)	NO	NULL				
+email_logs	subject	varchar(255)	NO	NULL				
+email_logs	status	enum('sent','failed')	NO	NULL				
+email_logs	error_message	text	YES	NULL				
+email_logs	ip_address	varchar(45)	NO	NULL				
+email_logs	dispatched_at	datetime	NO	current_timestamp()				
+email_queue	id	int(10) unsigned	NO	NULL	PRI	auto_increment		
+email_queue	recipient	varchar(254)	NO	NULL				
+email_queue	recipient_name	varchar(100)	YES	NULL				
+email_queue	subject	varchar(255)	NO	NULL				
+email_queue	body_html	mediumtext	NO	NULL				
+email_queue	body_text	mediumtext	NO	NULL				
+email_queue	priority	tinyint(3) unsigned	NO	3				
+email_queue	attempts	tinyint(3) unsigned	NO	0				
+email_queue	max_attempts	tinyint(3) unsigned	NO	3				
+email_queue	last_error	text	YES	NULL				
+email_queue	created_at	datetime	NO	current_timestamp()				
+email_queue	locked_until	datetime	YES	NULL				
+menu_items	id	int(10) unsigned	NO	NULL	PRI	auto_increment		
+menu_items	menu_name	varchar(32)	NO	'main'				
+menu_items	node_id	int(10) unsigned	YES	NULL	MUL			
+menu_items	title	varchar(100)	NO	NULL				
+menu_items	url	varchar(255)	NO	NULL				
+menu_items	weight	int(11)	NO	0				
+menu_items	parent_id	int(10) unsigned	YES	NULL	MUL			
+menu_items	status	tinyint(1)	NO	1				
+menu_items	created_at	datetime	NO	current_timestamp()				
+nodes	id	int(10) unsigned	NO	NULL	PRI	auto_increment		
+nodes	type	varchar(32)	NO	NULL	MUL			
+nodes	title	varchar(255)	NO	NULL	MUL			
+nodes	slug	varchar(255)	NO	NULL	UNI			
+nodes	auto_slug	tinyint(1)	NO	1				
+nodes	body	mediumtext	YES	NULL				
+nodes	format	varchar(32)	NO	'filtered_html'				
+nodes	keywords	text	YES	NULL				
+nodes	fields_data	longtext	YES	NULL				
+nodes	uid	int(10) unsigned	NO	NULL	MUL			
+nodes	status	varchar(20)	NO	'published'				
+nodes	publish_on	datetime	YES	NULL				
+nodes	unpublish_on	datetime	YES	NULL				
+nodes	template	varchar(64)	YES	NULL				
+nodes	created_at	datetime	NO	current_timestamp()				
+nodes	updated_at	datetime	NO	current_timestamp()		on update current_timestamp()		
+node_revisions	id	int(10) unsigned	NO	NULL	PRI	auto_increment		
+node_revisions	node_id	int(10) unsigned	NO	NULL	MUL			
+node_revisions	title	varchar(255)	NO	NULL				
+node_revisions	body	mediumtext	YES	NULL				
+node_revisions	keywords	text	YES	NULL				
+node_revisions	fields_data	longtext	YES	NULL				
+node_revisions	log_message	varchar(255)	YES	NULL				
+
+node_revisions	uid	int(10) unsigned	NO	NULL	MUL			
+node_revisions	created_at	datetime	NO	current_timestamp()				
+node_terms	node_id	int(10) unsigned	NO	NULL	PRI			
+node_terms	term_id	int(10) unsigned	NO	NULL	PRI			
+permissions	id	int(10) unsigned	NO	NULL	PRI	auto_increment		
+permissions	machine_name	varchar(64)	NO	NULL	UNI			
+permissions	description	varchar(255)	NO	NULL				
+registrations	id	int(10) unsigned	NO	NULL	PRI	auto_increment		
+registrations	form_id	int(10) unsigned	NO	0	MUL			
+registrations	node_id	int(10) unsigned	NO	NULL	MUL			
+registrations	user_id	int(10) unsigned	YES	NULL				
+registrations	name	varchar(120)	NO	NULL				
+registrations	email	varchar(254)	NO	NULL	MUL			
+registrations	phone	varchar(30)	YES	NULL				
+registrations	organization	varchar(150)	YES	NULL				
+registrations	slots	smallint(5) unsigned	NO	1				
+registrations	state	enum('complete','pending','waitlist','canceled')	NO	'complete'				
+registrations	submission_data	longtext	YES	NULL				
+registrations	custom_fields	longtext	YES	NULL				
+registrations	ip_address	varchar(45)	NO	NULL				
+registrations	created_at	datetime	NO	current_timestamp()				
+registrations	updated_at	datetime	NO	current_timestamp()		on update current_timestamp()		
+registration_forms	id	int(10) unsigned	NO	NULL	PRI	auto_increment		
+registration_forms	title	varchar(255)	NO	NULL				
+registration_forms	description	text	YES	NULL				
+registration_forms	host_type	enum('page','block')	NO	'page'				
+registration_forms	slug	varchar(255)	YES	NULL	UNI			
+registration_forms	block_id	int(10) unsigned	YES	NULL				
+registration_forms	status	tinyint(1)	NO	1	MUL			
+registration_forms	capacity	int(10) unsigned	NO	0				
+registration_forms	allow_waitlist	tinyint(1)	NO	1				
+registration_forms	open_date	datetime	YES	NULL				
+registration_forms	close_date	datetime	YES	NULL				
+registration_forms	fields_schema	longtext	YES	NULL				
+registration_forms	confirmation_message	text	YES	NULL				
+registration_forms	created_at	datetime	NO	current_timestamp()				
+registration_forms	updated_at	datetime	NO	current_timestamp()		on update current_timestamp()		
+registration_settings	id	int(10) unsigned	NO	NULL	PRI	auto_increment		
+registration_settings	entity_type	enum('content_type','node')	NO	'content_type'	MUL			
+registration_settings	entity_id	varchar(64)	NO	NULL				
+registration_settings	status	tinyint(1)	NO	1				
+registration_settings	capacity	int(10) unsigned	NO	0				
+registration_settings	allow_waitlist	tinyint(1)	NO	1				
+registration_settings	open_date	datetime	YES	NULL				
+registration_settings	close_date	datetime	YES	NULL				
+registration_settings	reminder_template	text	YES	NULL				
+roles	id	int(10) unsigned	NO	NULL	PRI	auto_increment		
+roles	machine_name	varchar(32)	NO	NULL	UNI			
+roles	label	varchar(64)	NO	NULL				
+role_permissions	role_id	int(10) unsigned	NO	NULL	PRI			
+role_permissions	permission_id	int(10) unsigned	NO	NULL	PRI			
+site_alerts	id	int(10) unsigned	NO	NULL	PRI	auto_increment		
+site_alerts	title	varchar(255)	NO	NULL				
+site_alerts	message	text	NO	NULL				
+site_alerts	display_type	enum('modal','banner_top')	NO	'modal'				
+site_alerts	severity	enum('info','warning','emergency','success')	NO	'warning'				
+site_alerts	target_pages	varchar(255)	YES	'<front>'				
+site_alerts	cta_label	varchar(100)	YES	NULL				
+site_alerts	cta_url	varchar(255)	YES	NULL				
+site_alerts	dismissible	tinyint(1)	NO	1				
+site_alerts	status	tinyint(1)	NO	1	MUL			
+site_alerts	start_date	datetime	YES	NULL				
+site_alerts	end_date	datetime	YES	NULL				
+site_alerts	created_at	datetime	NO	current_timestamp()				
+site_settings	setting_key	varchar(64)	NO	NULL	PRI			
+site_settings	setting_value	text	YES	NULL				
+site_settings	updated_at	datetime	NO	current_timestamp()		on update current_timestamp()		
+taxonomy_terms	id	int(10) unsigned	NO	NULL	PRI	auto_increment		
+taxonomy_terms	vocabulary_id	int(10) unsigned	NO	NULL	MUL			
+taxonomy_terms	name	varchar(100)	NO	NULL				
+taxonomy_terms	slug	varchar(100)	NO	NULL	UNI			
+taxonomy_terms	description	text	YES	NULL				
+taxonomy_terms	weight	int(11)	NO	0				
+taxonomy_vocabularies	id	int(10) unsigned	NO	NULL	PRI	auto_increment		
+taxonomy_vocabularies	machine_name	varchar(32)	NO	NULL	UNI			
+taxonomy_vocabularies	name	varchar(64)	NO	NULL				
+taxonomy_vocabularies	description	varchar(255)	YES	NULL				
+tour_reservations	id	int(10) unsigned	NO	NULL	PRI	auto_increment		
+tour_reservations	full_name	varchar(120)	NO	NULL				
+tour_reservations	email	varchar(254)	NO	NULL				
+tour_reservations	phone	varchar(30)	NO	NULL				
+tour_reservations	organization	varchar(150)	YES	NULL				
+tour_reservations	attendees	tinyint(3) unsigned	NO	1				
+tour_reservations	tour_date	date	NO	NULL				
+tour_reservations	us_citizen	tinyint(1)	NO	1				
+tour_reservations	special_accommodations	text	YES	NULL				
+tour_reservations	ip_address	varchar(45)	NO	NULL				
+tour_reservations	status	enum('pending','confirmed','cancelled')	NO	'pending'				
+tour_reservations	created_at	datetime	NO	current_timestamp()				
+url_redirects	id	int(10) unsigned	NO	NULL	PRI	auto_increment		
+url_redirects	source_path	varchar(255)	NO	NULL	UNI			
+url_redirects	target_path	varchar(255)	NO	NULL				
+url_redirects	status_code	smallint(6)	NO	301				
+url_redirects	created_at	datetime	NO	current_timestamp()				
+users	id	int(10) unsigned	NO	NULL	PRI	auto_increment		
+users	username	varchar(60)	NO	NULL	UNI			
+users	email	varchar(254)	NO	NULL	UNI			
+users	password_hash	varchar(255)	NO	NULL				
+users	status	tinyint(1)	NO	1				
+users	created_at	datetime	NO	current_timestamp()				
+
+user_roles	user_id	int(10) unsigned	NO	NULL	PRI			
+user_roles	role_id	int(10) unsigned	NO	NULL	PRI			
+views	id	int(10) unsigned	NO	NULL	PRI	auto_increment		
+views	name	varchar(128)	NO	NULL				
+views	machine_name	varchar(64)	NO	NULL	UNI			
+views	description	text	YES	NULL				
+views	base_table	varchar(64)	NO	'nodes'				
+views	display_type	varchar(20)	NO	'block'				
+views	path	varchar(255)	YES	NULL				
+views	block_id	int(10) unsigned	YES	NULL				
+views	configuration	longtext	NO	NULL				
+views	status	tinyint(1)	NO	1	MUL			
+views	created_at	datetime	NO	current_timestamp()				
+views	updated_at	datetime	NO	current_timestamp()		on update current_timestamp()		
+watchdog	id	int(10) unsigned	NO	NULL	PRI	auto_increment		
+watchdog	uid	int(10) unsigned	YES	NULL	MUL			
+watchdog	type	varchar(32)	NO	NULL				
+watchdog	message	text	NO	NULL				
+watchdog	severity	varchar(16)	NO	'notice'				
+watchdog	link	varchar(255)	YES	NULL				
+watchdog	ip_address	varchar(45)	NO	NULL				
+watchdog	timestamp	datetime	NO	current_timestamp()				

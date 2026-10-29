@@ -1,0 +1,787 @@
+Searching 64 files for "_blank"
+
+~/www/cms/admin/analytics.php:
+  102                                  <tr>
+  103                                      <td>
+  104:                                         <strong><a href="/cms/<?= htmlspecialchars($p['path']) ?>" target="_blank">/<?= htmlspecialchars($p['path']) ?></a></strong>
+  105                                      </td>
+  106                                      <td style="text-align:right; font-weight:600;"><?= number_format((int)$p['hits']) ?></td>
+  ...
+  127                                  <tr>
+  128                                      <td style="max-width:240px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+  129:                                         <a href="<?= htmlspecialchars($r['referer']) ?>" target="_blank" rel="nofollow"><?= htmlspecialchars($r['referer']) ?></a>
+  130                                      </td>
+  131                                      <td style="text-align:right; font-weight:600;"><?= number_format((int)$r['count']) ?></td>
+
+~/www/cms/admin/custom_pages.php:
+   98                                      <td><?= number_format($p['size'] / 1024, 1) ?> KB</td>
+   99                                      <td style="font-size:0.8rem; color:#666;"><?= date('M j, Y H:i', $p['modified']) ?></td>
+  100:                                     <td><a href="<?= htmlspecialchars($p['url']) ?>" target="_blank" style="color:var(--frnp-navy); font-weight:600;">Visit &raquo;</a></td>
+  101                                  </tr>
+  102                                  <?php endforeach; ?>
+
+~/www/cms/admin/media.php:
+  107                              <tr>
+  108                                  <td>
+  109:                                     <strong><a href="<?= $f['url'] ?>" target="_blank"><?= htmlspecialchars($f['name']) ?></a></strong>
+  110                                  </td>
+  111                                  <td><?= number_format($f['size'] / 1024, 1) ?> KB</td>
+  ...
+  115                                  </td>
+  116                                  <td>
+  117:                                     <a href="<?= $f['url'] ?>" target="_blank" class="btn-secondary" style="font-size:0.8rem; padding:4px 8px;">View</a>
+  118                                      <?php if (user_has_permission('administer_site')): ?>
+  119                                          <a href="/cms/admin/media.php?action=delete&file=<?= urlencode($f['name']) ?>" onclick="return confirm('Permanently delete this file?');" style="color:#c00; margin-left: 8px; font-size: 0.85rem;">Delete</a>
+
+~/www/cms/admin/menus.php:
+  194              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+  195                  <h1>Structure &raquo; Navigation Menu</h1>
+  196:                 <a href="<?= base_path('home') ?>" target="_blank" class="btn-secondary" style="font-size:0.85rem;">View Live Site &raquo;</a>
+  197              </div>
+  198  
+
+~/www/cms/admin/nav.php:
+  245      <!-- Quick Switch to Live Site -->
+  246      <div class="sidebar-quick-actions">
+  247:         <a href="<?= base_path('home') ?>" target="_blank" class="btn-live-preview">
+  248              <svg class="nav-svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+  249                  <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/>
+
+~/www/cms/admin/node_edit.php:
+  367                                  </div>
+  368                                  <small style="color: #64748b; margin-top: 4px; display: block;">
+  369:                                     Template configured in <a href="/cms/admin/pathauto.php" target="_blank" style="color: #0b2545; font-weight: 600;">URL Patterns</a>: <code>/cms/<?= htmlspecialchars($content_type['url_pattern'] ?? '[node:title]') ?></code>
+  370                                  </small>
+  371                              </div>
+  ...
+  439                                                      <img src="<?= htmlspecialchars((string)$val) ?>" alt="" style="max-height: 48px; border: 1px solid #cbd5e1; border-radius: 4px;">
+  440                                                  <?php endif; ?>
+  441:                                                 <span>Current: <a href="<?= htmlspecialchars((string)$val) ?>" target="_blank"><?= htmlspecialchars(basename((string)$val)) ?></a></span>
+  442                                              </div>
+  443                                          <?php endif; ?>
+  ...
+  596                                                  <?php endif; ?>
+  597                                                  <button type="button" class="btn-secondary" style="font-size:0.75rem; padding: 2px 6px;" 
+  598:                                                         onclick="insertToEditor('<a href=\'<?= $mf['url'] ?>\' target=\'_blank\' class=\'btn-download\'><?= htmlspecialchars($mf['name']) ?></a>')">Link</button>
+  599                                              </div>
+  600                                          </div>
+
+~/www/cms/admin/nodes.php:
+  243                              <tr>
+  244                                  <td>
+  245:                                     <strong><a href="/cms/<?= htmlspecialchars($n['slug']) ?>" target="_blank"><?= htmlspecialchars($n['title']) ?></a></strong>
+  246                                      <div style="font-size: 0.8rem; color: #666;">/<?= htmlspecialchars($n['slug']) ?></div>
+  247                                  </td>
+
+~/www/cms/admin/registrations.php:
+  447                                              <?php if ($f['host_type'] === 'page'): ?>
+  448                                                  <span class="host-badge-page">Page</span>
+  449:                                                 <div style="margin-top:3px;"><a href="<?= base_path($f['slug']) ?>" target="_blank" style="font-size:0.82rem; font-family:monospace;">/<?= htmlspecialchars($f['slug']) ?></a></div>
+  450                                              <?php else: ?>
+  451                                                  <span class="host-badge-block">Block</span>
+  ...
+  515                          <p style="color: #64748b; font-size: 0.88rem; margin-top: -12px;">
+  516                              Host Target: <strong><?= strtoupper($active_form['host_type']) ?></strong> 
+  517:                             <?= $active_form['host_type'] === 'page' ? '(<a href="' . base_path($active_form['slug']) . '" target="_blank">/' . htmlspecialchars($active_form['slug']) . '</a>)' : '(<a href="' . base_path('admin/blocks.php') . '">Configured in Blocks</a>)' ?>
+  518                          </p>
+  519                      </div>
+
+~/www/cms/admin/watchdog.php:
+  108                                      <?= htmlspecialchars($log['message']) ?>
+  109                                      <?php if (!empty($log['link'])): ?>
+  110:                                         <br><a href="<?= htmlspecialchars($log['link']) ?>" target="_blank" style="font-size:0.8rem; color:var(--frnp-navy);">View Target Link</a>
+  111                                      <?php endif; ?>
+  112                                  </td>
+
+~/www/cms/includes/content.php:
+  657          case 'file':
+  658              $filename = basename((string)$val);
+  659:             return '<a href="' . htmlspecialchars((string)$val) . '" target="_blank" class="btn-download">' . htmlspecialchars($filename) . '</a>';
+  660  
+  661          case 'date':
+
+~/www/cms/includes/filters.php:
+   56          function ($matches) {
+   57              $url = htmlspecialchars($matches[1], ENT_QUOTES, 'UTF-8');
+   58:             return '<a href="' . $url . '" target="_blank" rel="noopener noreferrer">' . $url . '</a>';
+   59          },
+   60          $html
+
+16 matches across 11 files
+
+
+Searching 64 files for "/cms"
+
+~/www/cms/admin/alerts.php:
+   16      $stmt = $db->prepare('DELETE FROM site_alerts WHERE id = :id');
+   17      $stmt->execute(['id' => (int)$_GET['id']]);
+   18:     header('Location: /cms/admin/alerts.php?msg=deleted');
+   19      exit;
+   20  }
+   ..
+   25      $stmt = $db->prepare('UPDATE site_alerts SET status = IF(status = 1, 0, 1) WHERE id = :id');
+   26      $stmt->execute(['id' => (int)$_GET['id']]);
+   27:     header('Location: /cms/admin/alerts.php');
+   28      exit;
+   29  }
+   ..
+   65  <head>
+   66      <title>Site Alerts & Modal Windows - FRNP CMS</title>
+   67:     <link rel="stylesheet" href="/cms/assets/css/admin.css">
+   68      <style>
+   69          .grid-2col { display: grid; grid-template-columns: 1.6fr 1fr; gap: 25px; }
+   ..
+  117                                      <td><code><?= htmlspecialchars($a['target_pages'] ?: '*') ?></code></td>
+  118                                      <td>
+  119:                                         <a href="/cms/admin/alerts.php?action=toggle&id=<?= $a['id'] ?>&csrf_token=<?= get_csrf_token() ?>" style="text-decoration:none;">
+  120                                              <span class="badge-status <?= $a['status'] ? 'status-published' : 'status-draft' ?>">
+  121                                                  <?= $a['status'] ? 'Active' : 'Muted' ?>
+  ...
+  124                                      </td>
+  125                                      <td style="white-space: nowrap;">
+  126:                                         <a href="/cms/admin/alerts.php?action=delete&id=<?= $a['id'] ?>&csrf_token=<?= get_csrf_token() ?>" 
+  127                                             onclick="return confirm('Delete this alert?');" style="color:#c00; font-size:0.85rem;">Delete</a>
+  128                                      </td>
+  ...
+  183                              <div class="form-row">
+  184                                  <label>Button URL (Optional)</label>
+  185:                                 <input type="text" name="cta_url" placeholder="/cms/safety-bulletin">
+  186                              </div>
+  187                          </div>
+
+~/www/cms/admin/analytics.php:
+   13  <head>
+   14      <title>Real-Time Site Analytics - FRNP CMS</title>
+   15:     <link rel="stylesheet" href="/cms/assets/css/admin.css">
+   16      <meta http-equiv="refresh" content="30">
+   17      <style>
+   ..
+  102                                  <tr>
+  103                                      <td>
+  104:                                         <strong><a href="/cms/<?= htmlspecialchars($p['path']) ?>"">/<?= htmlspecialchars($p['path']) ?></a></strong>
+  105                                      </td>
+  106                                      <td style="text-align:right; font-weight:600;"><?= number_format((int)$p['hits']) ?></td>
+
+~/www/cms/admin/backup.php:
+   46  <head>
+   47      <title>Database Backup - FRNP CMS</title>
+   48:     <link rel="stylesheet" href="/cms/assets/css/admin.css">
+   49  </head>
+   50  <body>
+   ..
+   58                      Generate and download a complete structural schema and data dump of the <code>frnp_cms</code> database (nodes, revisions, taxonomy, users, permissions, and media mappings).
+   59                  </p>
+   60:                 <a href="/cms/admin/backup.php?action=download" class="btn-primary" style="padding: 12px 20px;">
+   61                      ⬇ Download Backup (.sql)
+   62                  </a>
+
+~/www/cms/admin/cache.php:
+   22  <head>
+   23      <title>Performance & Caching - FRNP CMS</title>
+   24:     <link rel="stylesheet" href="/cms/assets/css/admin.css">
+   25  </head>
+   26  <body>
+
+~/www/cms/admin/content_type_fields.php:
+   55  
+   56      watchdog('content_type', "Field '{$field_to_delete}' removed from '{$type_key}'.", 'notice');
+   57:     header("Location: /cms/admin/content_type_fields.php?type=" . urlencode($type_key) . "&msg=deleted");
+   58      exit;
+   59  }
+   ..
+  188  <head>
+  189      <title>Manage Fields: <?= htmlspecialchars($content_type['name']) ?> - FRNP CMS</title>
+  190:     <link rel="stylesheet" href="/cms/assets/css/admin.css">
+  191      <style>
+  192          .page-header-actions {
+  ...
+  355          <main class="admin-main">
+  356              <div style="font-size: 0.84rem; color: #64748b; margin-bottom: 8px;">
+  357:                 <a href="/cms/admin/content_types.php" style="color: #0b2545; text-decoration: none;">&laquo; Content Types</a> &raquo;
+  358                  <span><?= htmlspecialchars($content_type['name']) ?></span>
+  359              </div>
+  ...
+  367                  </div>
+  368                  <div style="display:flex; gap:10px;">
+  369:                     <a href="/cms/admin/pathauto.php" class="btn-secondary">URL Alias Patterns &raquo;</a>
+  370                      <button type="button" class="btn-primary" onclick="openAddModal()">+ Add Field</button>
+  371                  </div>
+  ...
+  442                                      <td style="text-align: right; white-space: nowrap;">
+  443                                          <button type="button" class="btn-secondary" style="font-size:0.8rem; padding:4px 8px;" onclick='openEditModal(<?= json_encode($f) ?>)'>Edit</button>
+  444:                                         <a href="/cms/admin/content_type_fields.php?type=<?= urlencode($type_key) ?>&action=delete&field=<?= urlencode($f['name']) ?>&csrf_token=<?= get_csrf_token() ?>" 
+  445                                             onclick="return confirm('Remove field &quot;<?= htmlspecialchars($f['label']) ?>&quot;?');" 
+  446                                             style="color:#c00; font-size:0.8rem; margin-left:8px; text-decoration:none;">Delete</a>
+
+~/www/cms/admin/content_types.php:
+   51  <head>
+   52      <title>Content Types - FRNP CMS</title>
+   53:     <link rel="stylesheet" href="/cms/assets/css/admin.css">
+   54  </head>
+   55  <body>
+   ..
+   78                              <td style="color:#555; font-size:0.85rem;"><?= htmlspecialchars($t['description'] ?? '') ?></td>
+   79                              <td>
+   80:                                 <a href="/cms/admin/content_type_fields.php?type=<?= urlencode($t['type']) ?>" class="btn-secondary" style="font-size:0.8rem; padding: 4px 10px;">
+   81                                      + Fields
+   82                                  </a>
+
+~/www/cms/admin/cron.php:
+   76  <head>
+   77      <title>System Maintenance & Cron - FRNP CMS</title>
+   78:     <link rel="stylesheet" href="/cms/assets/css/admin.css">
+   79  </head>
+   80  <body>
+
+~/www/cms/admin/custom_pages.php:
+   26              $error = "A custom page with the filename '{$slug}.php' already exists.";
+   27          } else {
+   28:             $starter_code = "<?php\ndeclare(strict_types=1);\n\n/**\n * Custom Page: {$title}\n * Route: /cms/{$slug}\n */\n\n\$page_title = \"" . addslashes($title) . " | Four Rivers Nuclear Partnership\";\n\$node['title'] = \"" . addslashes($title) . "\";\n\n\$db = get_db();\n?>\n\n<div class=\"custom-page-container\">\n    <p>Custom page logic and database hooks go here.</p>\n</div>\n";
+   29              file_put_contents($target_file, $starter_code);
+   30              watchdog('custom_pages', "Created custom page file: {$slug}.php", 'notice');
+   ..
+   43              'file'     => $f,
+   44              'slug'     => $slug,
+   45:             'url'      => '/cms/' . $slug,
+   46              'size'     => filesize($filepath),
+   47              'modified' => filemtime($filepath)
+   ..
+   63  <head>
+   64      <title>Custom Pages & Forms - FRNP CMS</title>
+   65:     <link rel="stylesheet" href="/cms/assets/css/admin.css">
+   66      <style>
+   67          .grid-layout { display: grid; grid-template-columns: 1.5fr 1fr; gap: 25px; }
+   ..
+  121                              <label>URL Slug (Filename) *</label>
+  122                              <input type="text" name="slug" required placeholder="e.g. contractor-badge-portal">
+  123:                             <small style="color:#666;">Will create <code>custom_pages/[slug].php</code> accessible at <code>/cms/[slug]</code>.</small>
+  124                          </div>
+  125  
+
+~/www/cms/admin/emails.php:
+   41                  "<p>This diagnostic verification verifies direct socket communication and transport through the Four Rivers Nuclear Partnership CMS mailer.</p>
+   42                   <p><strong>Timestamp:</strong> " . date('Y-m-d H:i:s T') . "<br><strong>Driver:</strong> " . htmlspecialchars(get_site_setting('mail_driver')) . "</p>",
+   43:                 "http://" . ($_SERVER['HTTP_HOST'] ?? 'localhost') . "/cms/",
+   44                  "Visit Portal"
+   45              );
+   ..
+   71  <head>
+   72      <title>Email Transport & Workflows - FRNP CMS</title>
+   73:     <link rel="stylesheet" href="/cms/assets/css/admin.css">
+   74      <style>
+   75          .grid-2col { display: grid; grid-template-columns: 1.2fr 1fr; gap: 25px; }
+
+~/www/cms/admin/file_manager.php:
+  143      if ($e === '.' || $e === '..' || $e === '.htaccess') continue;
+  144      $full = $target_dir . '/' . $e;
+  145:     $url = '/cms/uploads/' . ($rel_subpath !== '' ? $rel_subpath . '/' : '') . rawurlencode($e);
+  146  
+  147      if (is_dir($full)) {
+  ...
+  189  <head>
+  190      <title>IMCE / elFinder File Manager - FRNP CMS</title>
+  191:     <link rel="stylesheet" href="/cms/assets/css/admin.css">
+  192      <style>
+  193          /* IMCE / elFinder Modern Workspace Theme */
+
+~/www/cms/admin/index.php:
+    9  
+   10      if (authenticate_user($username, $password)) {
+   11:         header('Location: /cms/admin/nodes.php');
+   12          exit;
+   13      } else {
+   ..
+   18  $user = current_user();
+   19  if ($user) {
+   20:     header('Location: /cms/admin/nodes.php');
+   21      exit;
+   22  }
+   ..
+   26  <head>
+   27      <title>Login - FRNP CMS Admin</title>
+   28:     <link rel="stylesheet" href="/cms/assets/css/admin.css">
+   29      <style>
+   30          .login-box { max-width: 420px; margin: 100px auto; background: #fff; padding: 30px; border-radius: 4px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-top: 4px solid #003366; }
+
+~/www/cms/admin/logout.php:
+   21  session_destroy();
+   22  
+   23: header('Location: /cms/admin/index.php');
+   24  exit;
+
+~/www/cms/admin/media.php:
+   14      $target = $upload_dir . $file_to_delete;
+   15      if (file_exists($target) && unlink($target)) {
+   16:         header('Location: /cms/admin/media.php?msg=deleted');
+   17          exit;
+   18      } else {
+   ..
+   55              'size'     => filesize($path),
+   56              'modified' => filemtime($path),
+   57:             'url'      => '/cms/uploads/files/' . rawurlencode($item)
+   58          ];
+   59      }
+   ..
+   64  <head>
+   65      <title>Media & Documents - FRNP CMS</title>
+   66:     <link rel="stylesheet" href="/cms/assets/css/admin.css">
+   67  </head>
+   68  <body>
+   ..
+  117                                      <a href="<?= $f['url'] ?>" class="btn-secondary" style="font-size:0.8rem; padding:4px 8px;">View</a>
+  118                                      <?php if (user_has_permission('administer_site')): ?>
+  119:                                         <a href="/cms/admin/media.php?action=delete&file=<?= urlencode($f['name']) ?>" onclick="return confirm('Permanently delete this file?');" style="color:#c00; margin-left: 8px; font-size: 0.85rem;">Delete</a>
+  120                                      <?php endif; ?>
+  121                                  </td>
+
+~/www/cms/admin/menus.php:
+   86          $error = 'Both Link Title and Target URL are required.';
+   87      } else {
+   88:         // Normalize portable internal path without hardcoded /cms/ prefix
+   89          if (!str_starts_with($url, 'http://') && !str_starts_with($url, 'https://')) {
+   90              $cleaned_slug = preg_replace('#^/?cms/#', '', ltrim($url, '/'));
+
+~/www/cms/admin/migrate_drupal.php:
+  311      <meta charset="UTF-8">
+  312      <title>Drupal SQL Migration - FRNP CMS</title>
+  313:     <link rel="stylesheet" href="/cms/assets/css/admin.css">
+  314      <style>
+  315          .console-output {
+  ...
+  397                      </div>
+  398                      <div style="margin-top: 15px;">
+  399:                         <a href="/cms/admin/nodes.php" class="btn-primary">View Imported Content</a>
+  400:                         <a href="/cms/admin/users.php" class="btn-secondary" style="margin-left: 10px;">Review Migrated Users</a>
+  401                      </div>
+  402                  </section>
+
+~/www/cms/admin/node_edit.php:
+   40              $media_files[] = [
+   41                  'name'   => $f,
+   42:                 'url'    => '/cms/uploads/files/' . rawurlencode($f),
+   43                  'is_img' => (bool)preg_match('/\.(jpg|jpeg|png|webp|gif|svg)$/i', $f)
+   44              ];
+   ..
+   71                  $dest = $media_dir . $new_filename;
+   72                  if (move_uploaded_file($up['tmp_name'], $dest)) {
+   73:                     $custom_data[$fname] = '/cms/uploads/files/' . $new_filename;
+   74                  }
+   75              }
+   ..
+  116      // Redirect based on action button
+  117      if (isset($_POST['submit_action']) && $_POST['submit_action'] === 'save_admin') {
+  118:         header("Location: /cms/admin/nodes.php?saved=1");
+  119      } else {
+  120          // Fetch the definitive slug saved to the database by save_node()
+  ...
+  122          $final_slug = $saved_node['slug'] ?? $slug_input;
+  123          $clean_url_path = implode('/', array_map('rawurlencode', explode('/', ltrim($final_slug, '/'))));
+  124:         header("Location: /cms/{$clean_url_path}?saved=1");
+  125      }
+  126      exit;
+  ...
+  131  <head>
+  132      <title><?= $id ? 'Edit' : 'Create' ?> <?= htmlspecialchars($content_type['name']) ?> - FRNP CMS</title>
+  133:     <link rel="stylesheet" href="/cms/assets/css/admin.css">
+  134      
+  135      <!-- Trumbowyg WYSIWYG Editor Core & Plugins -->
+  ...
+  331                  <h1><?= $id ? 'Edit' : 'Create' ?> <?= htmlspecialchars($content_type['name']) ?></h1>
+  332                  <?php if ($id): ?>
+  333:                     <a href="/cms/admin/revisions.php?id=<?= $id ?>" class="btn-secondary" style="font-size:0.85rem;">View Revision History</a>
+  334                  <?php endif; ?>
+  335              </div>
+  ...
+  361                              <div id="box_auto_preview" style="display: <?= (!isset($node['auto_slug']) || $node['auto_slug']) ? 'block' : 'none' ?>;">
+  362                                  <div style="display: flex; align-items: center; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px; padding: 8px 12px; font-family: monospace; font-size: 0.88rem;">
+  363:                                     <span style="color: #64748b;">/cms/</span>
+  364                                      <span id="preview_slug_text" style="font-weight: 700; color: #0b2545; word-break: break-all;">
+  365                                          <?= htmlspecialchars($node['slug'] ?? 'generating-url...') ?>
+  ...
+  367                                  </div>
+  368                                  <small style="color: #64748b; margin-top: 4px; display: block;">
+  369:                                     Template configured in <a href="/cms/admin/pathauto.php" style="color: #0b2545; font-weight: 600;">URL Patterns</a>: <code>/cms/<?= htmlspecialchars($content_type['url_pattern'] ?? '[node:title]') ?></code>
+  370                                  </small>
+  371                              </div>
+  ...
+  373                              <div id="box_custom_slug" style="display: <?= (isset($node['auto_slug']) && !$node['auto_slug']) ? 'block' : 'none' ?>;">
+  374                                  <div style="display: flex; align-items: center;">
+  375:                                     <span style="background: #f1f5f9; border: 1px solid #cbd5e1; border-right: none; padding: 8px 12px; font-family: monospace; font-size: 0.88rem; color: #64748b; border-radius: 4px 0 0 4px;">/cms/</span>
+  376                                      <input type="text" name="slug" id="slug_custom_input" 
+  377                                             value="<?= htmlspecialchars($node['slug'] ?? '') ?>" 
+  ...
+  614                          Save & Return to Admin
+  615                      </button>
+  616:                     <a href="<?= !empty($node['slug']) ? '/cms/' . htmlspecialchars($node['slug']) : '/cms/admin/nodes.php' ?>" class="btn-secondary" style="margin-left:auto;">
+  617                          Cancel
+  618                      </a>
+
+~/www/cms/admin/nodes.php:
+   13      $del = $db->prepare('DELETE FROM nodes WHERE id = :id');
+   14      $del->execute(['id' => (int)$_GET['id']]);
+   15:     header('Location: /cms/admin/nodes.php?msg=deleted');
+   16      exit;
+   17  }
+   ..
+   91  <head>
+   92      <title>Content Manager - FRNP CMS</title>
+   93:     <link rel="stylesheet" href="/cms/assets/css/admin.css">
+   94      <style>
+   95          .filter-grid {
+   ..
+  132                      <span style="font-size: 0.88rem; font-weight: 600; color: #475569;">+ Add Content: </span>
+  133                      <?php foreach ($types as $t): ?>
+  134:                         <a href="/cms/admin/node_edit.php?type=<?= urlencode($t['type']) ?>" class="btn-primary" style="margin-left: 6px; padding: 6px 12px; font-size: 0.85rem;">
+  135                              <?= htmlspecialchars($t['name']) ?>
+  136                          </a>
+  ...
+  145              <!-- Node Filtering Bar -->
+  146              <section class="card" style="padding: 16px 20px; margin-bottom: 20px;">
+  147:                 <form method="GET" action="/cms/admin/nodes.php">
+  148                      <div class="filter-grid">
+  149                          <!-- Content Type -->
+  ...
+  211                              <button type="submit" class="btn-primary" style="padding: 8px 18px;">Filter</button>
+  212                              <?php if ($has_filter): ?>
+  213:                                 <a href="/cms/admin/nodes.php" class="btn-secondary" style="padding: 8px 14px; text-decoration: none;">Reset</a>
+  214                              <?php endif; ?>
+  215                          </div>
+  ...
+  243                              <tr>
+  244                                  <td>
+  245:                                     <strong><a href="/cms/<?= htmlspecialchars($n['slug']) ?>"><?= htmlspecialchars($n['title']) ?></a></strong>
+  246                                      <div style="font-size: 0.8rem; color: #666;">/<?= htmlspecialchars($n['slug']) ?></div>
+  247                                  </td>
+  ...
+  268                                  </td>
+  269                                  <td style="text-align: right; white-space: nowrap;">
+  270:                                     <a href="/cms/admin/node_edit.php?id=<?= $n['id'] ?>" class="btn-secondary" style="font-size:0.8rem; padding:4px 8px;">Edit</a>
+  271                                      <?php if (user_has_permission('delete_any_content')): ?>
+  272:                                         <a href="/cms/admin/nodes.php?action=delete&id=<?= $n['id'] ?>&csrf_token=<?= get_csrf_token() ?>" 
+  273                                             onclick="return confirm('Permanently delete this node?');" 
+  274                                             style="color: #c00; font-size: 0.8rem; margin-left: 8px; text-decoration: none;">Delete</a>
+
+~/www/cms/admin/pathauto.php:
+   53  <head>
+   54      <title>URL Alias Patterns (Pathauto) - FRNP CMS</title>
+   55:     <link rel="stylesheet" href="/cms/assets/css/admin.css">
+   56      <style>
+   57          .layout-grid {
+   ..
+  118              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+  119                  <h1>Structure &raquo; URL Patterns (Pathauto)</h1>
+  120:                 <a href="/cms/admin/content_types.php" class="btn-secondary" style="font-size: 0.84rem;">&laquo; Content Types</a>
+  121              </div>
+  122  
+
+~/www/cms/admin/permissions.php:
+   40  <head>
+   41      <title>Permission Matrix - FRNP CMS</title>
+   42:     <link rel="stylesheet" href="/cms/assets/css/admin.css">
+   43  </head>
+   44  <body>
+
+~/www/cms/admin/redirects.php:
+   10      $del = $db->prepare('DELETE FROM url_redirects WHERE id = :id');
+   11      $del->execute(['id' => (int)$_GET['id']]);
+   12:     header('Location: /cms/admin/redirects.php?msg=deleted');
+   13      exit;
+   14  }
+   ..
+   32  <head>
+   33      <title>URL Redirects - FRNP CMS</title>
+   34:     <link rel="stylesheet" href="/cms/assets/css/admin.css">
+   35  </head>
+   36  <body>
+   ..
+   58                                  <td>HTTP <?= $r['status_code'] ?></td>
+   59                                  <td>
+   60:                                     <a href="/cms/admin/redirects.php?action=delete&id=<?= $r['id'] ?>" onclick="return confirm('Delete this redirect?');" style="color:#c00;">Delete</a>
+   61                                  </td>
+   62                              </tr>
+   ..
+   72                      <input type="hidden" name="action" value="add_redirect">
+   73                      <div class="form-row">
+   74:                         <label>Source Path (Relative to /cms/, without leading slash) *</label>
+   75                          <input type="text" name="source_path" required placeholder="e.g. old-environmental-page">
+   76                      </div>
+   77                      <div class="form-row">
+   78                          <label>Target URL / Path *</label>
+   79:                         <input type="text" name="target_path" required placeholder="e.g. /cms/program-areas or https://energy.gov">
+   80                      </div>
+   81                      <div class="form-row">
+
+~/www/cms/admin/revisions.php:
+   28  <head>
+   29      <title>Revisions: <?= htmlspecialchars($node['title']) ?> - FRNP CMS</title>
+   30:     <link rel="stylesheet" href="/cms/assets/css/admin.css">
+   31  </head>
+   32  <body>
+   ..
+   35          <main class="admin-main">
+   36              <h1>Revisions for: "<?= htmlspecialchars($node['title']) ?>"</h1>
+   37:             <p style="margin-bottom: 20px;"><a href="/cms/admin/node_edit.php?type=<?= urlencode($node['type']) ?>&id=<?= $node['id'] ?>" class="btn-secondary">&laquo; Back to Node Editor</a></p>
+   38  
+   39              <?php if ($message): ?><div class="notice"><?= htmlspecialchars($message) ?></div><?php endif; ?>
+   ..
+   61                              <td>
+   62                                  <?php if ($index > 0): ?>
+   63:                                     <a href="/cms/admin/revisions.php?id=<?= $node['id'] ?>&action=rollback&rev_id=<?= $rev['id'] ?>" 
+   64                                         onclick="return confirm('Roll back to this exact version? Current changes will be archived in revisions.');" 
+   65                                         class="btn-secondary" style="font-size: 0.8rem; padding: 3px 8px;">Rollback</a>
+
+~/www/cms/admin/settings.php:
+   25  <head>
+   26      <title>Site Settings - FRNP CMS</title>
+   27:     <link rel="stylesheet" href="/cms/assets/css/admin.css">
+   28  </head>
+   29  <body>
+
+~/www/cms/admin/static_export.php:
+   50  
+   51      foreach ($nodes as $slug) {
+   52:         $source_url = "{$base_host}/cms/{$slug}";
+   53          $html = @file_get_contents($source_url);
+   54  
+   55          if ($html !== false) {
+   56              // Rewrite internal dynamic query paths to static file references
+   57:             $rewritten = str_replace('/cms/', './', $html);
+   58  
+   59              if ($slug === 'home') {
+   ..
+   71  
+   72      // 4. Compile dynamic views (/news and /sitemap.xml)
+   73:     $news_html = @file_get_contents("{$base_host}/cms/news");
+   74      if ($news_html !== false) {
+   75:         file_put_contents($export_dir . '/news.html', str_replace('/cms/', './', $news_html));
+   76      }
+   77  
+   78:     $sitemap_xml = @file_get_contents("{$base_host}/cms/sitemap.xml");
+   79      if ($sitemap_xml !== false) {
+   80          file_put_contents($export_dir . '/sitemap.xml', $sitemap_xml);
+   ..
+   82  
+   83      watchdog('system', "Static snapshot compiled successfully ({$compiled_count} pages).", 'info');
+   84:     $message = "Export complete. {$compiled_count} HTML pages and all media assets compiled to /cms/export/.";
+   85  }
+   86  ?>
+   ..
+   89  <head>
+   90      <title>Static Site Exporter - FRNP CMS</title>
+   91:     <link rel="stylesheet" href="/cms/assets/css/admin.css">
+   92  </head>
+   93  <body>
+   ..
+  101                  <h3>Generate Offline Static Distribution</h3>
+  102                  <p style="margin-bottom: 20px; color:#555; line-height: 1.5;">
+  103:                     Crawls all published nodes, collections, taxonomy archives, and asset trees, compiling the entire site into flat HTML, CSS, and media files in <code>/cms/export/</code>.
+  104                  </p>
+  105                  <form method="POST">
+
+~/www/cms/admin/submissions.php:
+    9      $del = $db->prepare('DELETE FROM contact_submissions WHERE id = :id');
+   10      $del->execute(['id' => (int)$_GET['id']]);
+   11:     header('Location: /cms/admin/submissions.php?msg=deleted');
+   12      exit;
+   13  }
+   ..
+   16      $up = $db->prepare('UPDATE contact_submissions SET status = "read" WHERE id = :id');
+   17      $up->execute(['id' => (int)$_GET['id']]);
+   18:     header('Location: /cms/admin/submissions.php');
+   19      exit;
+   20  }
+   ..
+   26  <head>
+   27      <title>Contact Inquiries - FRNP CMS</title>
+   28:     <link rel="stylesheet" href="/cms/assets/css/admin.css">
+   29  </head>
+   30  <body>
+   ..
+   62                                  <td>
+   63                                      <?php if ($s['status'] === 'unread'): ?>
+   64:                                         <a href="/cms/admin/submissions.php?action=mark_read&id=<?= $s['id'] ?>" class="btn-secondary" style="font-size:0.75rem; padding:3px 6px;">Mark Read</a>
+   65                                      <?php endif; ?>
+   66:                                     <a href="/cms/admin/submissions.php?action=delete&id=<?= $s['id'] ?>" onclick="return confirm('Delete message?');" style="color:#c00; margin-left: 6px; font-size: 0.8rem;">Delete</a>
+   67                                  </td>
+   68                              </tr>
+
+~/www/cms/admin/taxonomy.php:
+   37  <head>
+   38      <title>Taxonomy Management - FRNP CMS</title>
+   39:     <link rel="stylesheet" href="/cms/assets/css/admin.css">
+   40  </head>
+   41  <body>
+
+~/www/cms/admin/upload.php:
+   29      echo json_encode([
+   30          'success'  => true,
+   31:         'filepath' => '/cms/uploads/files/' . $filename,
+   32          'filename' => $filename
+   33      ]);
+
+~/www/cms/admin/user_edit.php:
+   70  <head>
+   71      <title>Edit User: <?= htmlspecialchars($target_user['username']) ?> - FRNP CMS</title>
+   72:     <link rel="stylesheet" href="/cms/assets/css/admin.css">
+   73  </head>
+   74  <body>
+   ..
+   77          <main class="admin-main" style="max-width: 800px;">
+   78              <h1>Edit Account: <?= htmlspecialchars($target_user['username']) ?></h1>
+   79:             <p style="margin-bottom: 20px;"><a href="/cms/admin/users.php" class="btn-secondary">&laquo; Back to User List</a></p>
+   80  
+   81              <?php if ($message): ?><div class="notice"><?= htmlspecialchars($message) ?></div><?php endif; ?>
+   ..
+  118                  <div class="form-actions" style="margin-top: 25px;">
+  119                      <button type="submit" class="btn-primary">Save Changes</button>
+  120:                     <a href="/cms/admin/users.php" class="btn-secondary">Cancel</a>
+  121                  </div>
+  122              </form>
+
+~/www/cms/admin/users.php:
+   48  <head>
+   49      <title>User Accounts - FRNP CMS</title>
+   50:     <link rel="stylesheet" href="/cms/assets/css/admin.css">
+   51  </head>
+   52  <body>
+   ..
+   80      <td><?= date('Y-m-d', strtotime($u['created_at'])) ?></td>
+   81      <td>
+   82:         <a href="/cms/admin/user_edit.php?id=<?= $u['id'] ?>" class="btn-secondary" style="font-size:0.8rem; padding: 3px 8px;">Edit</a>
+   83      </td>
+   84  </tr>
+
+~/www/cms/admin/watchdog.php:
+   10      $db->exec('TRUNCATE TABLE watchdog');
+   11      watchdog('system', 'Watchdog logs cleared by administrator.', 'notice');
+   12:     header('Location: /cms/admin/watchdog.php?msg=cleared');
+   13      exit;
+   14  }
+   ..
+   38  <head>
+   39      <title>Recent Log Messages (Watchdog) - FRNP CMS</title>
+   40:     <link rel="stylesheet" href="/cms/assets/css/admin.css">
+   41      <style>
+   42          .sev-error { color: #d32f2f; font-weight: bold; }
+   ..
+   53                  <h1>Reports &raquo; Recent Log Messages</h1>
+   54                  <div>
+   55:                     <a href="/cms/admin/watchdog.php?action=clear" onclick="return confirm('Clear all recorded event logs?');" class="btn-secondary" style="color:#c00;">Clear Log Messages</a>
+   56                  </div>
+   57              </div>
+   ..
+   73                      </select>
+   74                      <?php if ($type_filter): ?>
+   75:                         <a href="/cms/admin/watchdog.php" class="btn-secondary" style="font-size:0.8rem;">Reset</a>
+   76                      <?php endif; ?>
+   77                  </form>
+
+~/www/cms/api/content.php:
+   50      $item['fields_data'] = json_decode($item['fields_data'] ?? '{}', true);
+   51      $item['terms'] = get_node_terms((int)$item['id']);
+   52:     $item['canonical_url'] = '/cms/' . $item['slug'];
+   53  }
+   54  unset($item);
+
+~/www/cms/custom_pages/tours.php:
+    4  /**
+    5   * Custom Page: Paducah Site Tour Reservations
+    6:  * Route: /cms/tour-reservations
+    7   */
+    8  
+    .
+   78                  <tr><td style='padding:6px; font-weight:bold;'>Party Size:</td><td>{$attendees} guest(s)</td></tr>
+   79               </table>",
+   80:             "http://" . ($_SERVER['HTTP_HOST'] ?? 'localhost') . "/cms/admin/custom_pages.php",
+   81              "View Reservations"
+   82          );
+   ..
+  106      <?php endif; ?>
+  107  
+  108:     <form method="POST" action="/cms/tours" style="background:#ffffff; border:1px solid var(--frnp-border); padding:30px; border-radius:6px; box-shadow:var(--box-shadow);">
+  109          <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
+  110  
+
+~/www/cms/includes/analytics.php:
+   10      // Exclude API requests, static assets, and administration panel
+   11      $uri = $_SERVER['REQUEST_URI'] ?? '/';
+   12:     if (str_starts_with($uri, '/cms/admin') || str_starts_with($uri, '/cms/api')) {
+   13          return;
+   14      }
+
+~/www/cms/includes/content.php:
+   12       *
+   13       * Examples:
+   14:      *  base_path()                  => "" (at root) or "/cms" (in subfolder)
+   15:      *  base_path('home')            => "/home" or "/cms/home"
+   16:      *  base_path('admin/nodes.php') => "/admin/nodes.php" or "/cms/admin/nodes.php"
+   17       */
+   18      function base_path(string $path = ''): string {
+   ..
+  261      }
+  262  
+  263:     watchdog('content', "Node '{$data['title']}' saved (Type: {$data['type']}).", 'notice', "/cms/{$slug}");
+  264      require_once __DIR__ . '/cache.php';
+  265      cache_clear();
+
+~/www/cms/reset-admin.php:
+   21      echo "<p>Username: <strong>admin</strong></p>";
+   22      echo "<p>Password: <strong>{$password}</strong></p>";
+   23:     echo "<p><a href='/cms/admin/'>Go to Login</a></p>";
+   24      echo "<p style='color: red;'><strong>Security Note:</strong> Delete this file (<code>reset-admin.php</code>) now.</p>";
+   25  } catch (PDOException $e) {
+
+~/www/cms/setup.php:
+  503              $contact_id = (int)$pdo->lastInsertId();
+  504  
+  505:             // Seed Default Menu Links (Relative Root Paths, No Hardcoded /cms/)
+  506              $menu_stmt = $pdo->prepare('INSERT INTO `menu_items` (`menu_name`, `node_id`, `title`, `url`, `weight`, `parent_id`) VALUES (?, ?, ?, ?, ?, ?)');
+  507              $menu_stmt->execute(['main', $home_id, 'Home', '/home', 0, null]);
+
+~/www/cms/templates/node--article.php:
+   10              <div style="margin-top: 10px;">
+   11                  <?php foreach ($node['terms'] as $term): ?>
+   12:                     <a href="/cms/term/<?= htmlspecialchars($term['slug']) ?>" class="tag-pill">
+   13                          <?= htmlspecialchars($term['name']) ?>
+   14                      </a>
+
+~/www/cms/templates/view--articles.php:
+   12                      </div>
+   13                      <h2 style="font-size: 1.35rem; margin-bottom: 8px;">
+   14:                         <a href="/cms/<?= htmlspecialchars($art['slug']) ?>" style="color: var(--frnp-navy); text-decoration: none;">
+   15                              <?= htmlspecialchars($art['title']) ?>
+   16                          </a>
+   ..
+   25                      </p>
+   26                      <div style="margin-top: 10px;">
+   27:                         <a href="/cms/<?= htmlspecialchars($art['slug']) ?>" style="color: var(--frnp-navy); font-weight: 600; font-size: 0.85rem; text-decoration: underline;">
+   28                              Read Full Release &raquo;
+   29                          </a>
+
+~/www/cms/templates/view--contact.php:
+   16      <?php endif; ?>
+   17  
+   18:     <form method="POST" action="/cms/contact" style="background: #fdfdfd; padding: 25px; border: 1px solid #dcdcdc; border-radius: 4px;">
+   19          <div class="form-row" style="margin-bottom: 15px;">
+   20              <label style="display:block; font-weight:600; margin-bottom:5px;">Full Name *</label>
+
+~/www/cms/templates/view--search.php:
+    1  <div class="view-search">
+    2:     <form method="GET" action="/cms/search" style="margin-bottom: 30px; display: flex; gap: 10px;">
+    3          <input type="text" name="keyword" value="<?= htmlspecialchars($_GET['keyword'] ?? '') ?>" 
+    4                 placeholder="Search site content, releases, and documentation..." 
+    .
+   19                          </div>
+   20                          <h3 style="margin: 5px 0;">
+   21:                             <a href="/cms/<?= htmlspecialchars($r['slug']) ?>" style="color: var(--frnp-navy); text-decoration: none;">
+   22                                  <?= htmlspecialchars($r['title']) ?>
+   23                              </a>
+
+~/www/cms/templates/view--term.php:
+   14                      </div>
+   15                      <h2 style="font-size: 1.3rem; margin: 6px 0;">
+   16:                         <a href="/cms/<?= htmlspecialchars($item['slug']) ?>" style="color: var(--frnp-navy); text-decoration: none;">
+   17                              <?= htmlspecialchars($item['title']) ?>
+   18                          </a>
+
+114 matches across 40 files
