@@ -20,5 +20,5 @@ if (ini_get('session.use_cookies')) {
 }
 session_destroy();
 
-header('Location: ' . base_path('/admin/index.php'));
+header('Location: /admin/index.php');
 exit;
