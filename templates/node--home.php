@@ -3,6 +3,13 @@ declare(strict_types=1);
 
 $hero_video_url  = get_site_setting('home_hero_video', base_path('assets/video/deactivation-loop.mp4'));
 $hero_poster_url = get_site_setting('home_hero_poster', base_path('assets/img/hero-poster.webp'));
+
+// Fall back to .jpg if the client browser does not advertise WebP support
+$accepts_webp = isset($_SERVER['HTTP_ACCEPT']) && str_contains(strtolower($_SERVER['HTTP_ACCEPT']), 'image/webp');
+
+if (!$accepts_webp && str_ends_with(strtolower($hero_poster_url), '.webp')) {
+    $hero_poster_url = preg_replace('/\.webp$/i', '.jpg', $hero_poster_url);
+}
 $hero_headline   = get_site_setting('home_hero_headline', 'Future in Focus');
 $hero_subhead    = get_site_setting('home_hero_subhead', 'Safe. Compliant. Mission-Driven Environmental Remediation.');
 ?>
