@@ -81,22 +81,36 @@ $body_class_attr = !empty($body_classes) ? ' class="' . htmlspecialchars(implode
 <body<?= $body_class_attr ?>>
     <!-- Top Utility Bar -->
 
-    <!-- Main Navigation Header (Pinned / Sticky) -->
+<!-- Main Navigation Header (Pinned / Sticky) -->
     <header class="site-header" id="siteHeader">
         <div class="container main-header">
             <div class="logo">
                 <a href="<?= base_path('home') ?>">
-                    <img width="250" src="<?= base_path('assets/img/frnp_logo.png') ?>">
+                    <img width="250" src="<?= base_path('assets/img/frnp_logo.png') ?>" alt="Four Rivers Nuclear Partnership">
                 </a>
             </div>
-            <nav class="nav-menu">
+
+            <!-- Hamburger Button (Mobile only) -->
+            <button type="button" 
+                    class="mobile-menu-toggle" 
+                    id="mobileMenuToggle" 
+                    aria-label="Toggle navigation menu" 
+                    aria-expanded="false" 
+                    aria-controls="navMenu">
+                <span class="hamburger-bar"></span>
+                <span class="hamburger-bar"></span>
+                <span class="hamburger-bar"></span>
+            </button>
+
+            <!-- Navigation Menu -->
+            <nav class="nav-menu" id="navMenu">
                 <?php foreach ($menu_tree as $item): ?>
                     <?php $has_children = !empty($item['children']); ?>
                     <div class="nav-item <?= $has_children ? 'has-dropdown' : '' ?>">
                         <a href="<?= htmlspecialchars($item['url']) ?>" class="nav-link">
                             <?= htmlspecialchars($item['title']) ?>
                             <?php if ($has_children): ?>
-                                
+                                <span class="dropdown-caret" aria-hidden="true">&#9662;</span>
                             <?php endif; ?>
                         </a>
                         <?php if ($has_children): ?>
@@ -114,7 +128,7 @@ $body_class_attr = !empty($body_classes) ? ' class="' . htmlspecialchars(implode
                     <?php 
                         $logged_in_name = $_SESSION['user']['username'] ?? $_SESSION['user']['name'] ?? 'Dashboard';
                     ?>
-                    <div class="nav-item">
+                    <div class="nav-item nav-item-auth">
                         <a class="nav-link" id="loggedin" href="<?= base_path('admin/nodes.php') ?>"><?= htmlspecialchars($logged_in_name) ?></a>
                     </div>
                 <?php endif; ?>
@@ -122,96 +136,43 @@ $body_class_attr = !empty($body_classes) ? ' class="' . htmlspecialchars(implode
         </div>
     </header>
 
-    <?php
-// Fetch hierarchical menu tree
-$nav_tree = function_exists('get_menu_tree') ? get_menu_tree('main') : [];
-?>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const toggleBtn = document.getElementById('mobileMenuToggle');
+        const navMenu   = document.getElementById('navMenu');
 
-<header class="site-header">
-    <div class="header-container" style="display: flex; align-items: center; justify-content: space-between; position: relative;">
-        
-        <!-- Site Logo / Branding -->
-        <a href="<?= base_path('home') ?>" class="site-logo">
-            <img src="<?= base_path('assets/img/frnp_logo.png') ?>" alt="Four Rivers Nuclear Partnership" style="max-height: 50px; width: auto;">
-        </a>
+        if (!toggleBtn || !navMenu) return;
 
-        <!-- Hamburger Toggle Button (Hidden on desktop via CSS) -->
-        <button type="button" 
-                class="mobile-menu-toggle" 
-                id="mobileMenuToggle" 
-                aria-label="Toggle Navigation Menu" 
-                aria-expanded="false" 
-                aria-controls="primaryNavigation">
-            <span class="hamburger-bar"></span>
-            <span class="hamburger-bar"></span>
-            <span class="hamburger-bar"></span>
-        </button>
+        // Toggle mobile drawer
+        toggleBtn.addEventListener('click', function() {
+            const isOpen = navMenu.classList.toggle('is-open');
+            toggleBtn.classList.toggle('is-active', isOpen);
+            toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        });
 
-        <!-- Navigation Menu -->
-        <nav class="primary-nav" id="primaryNavigation" aria-label="Main Navigation">
-            <ul class="nav-menu">
-                <?php foreach ($nav_tree as $item): ?>
-                    <?php $has_children = !empty($item['children']); ?>
-                    <li class="nav-item <?= $has_children ? 'has-dropdown' : '' ?>">
-                        <a href="<?= htmlspecialchars($item['url']) ?>" class="nav-link">
-                            <?= htmlspecialchars($item['title']) ?>
-                            <?php if ($has_children): ?>
-                                <span class="dropdown-caret" aria-hidden="true">&#9662;</span>
-                            <?php endif; ?>
-                        </a>
-                        <?php if ($has_children): ?>
-                            <ul class="dropdown-menu">
-                                <?php foreach ($item['children'] as $child): ?>
-                                    <li class="dropdown-item">
-                                        <a href="<?= htmlspecialchars($child['url']) ?>" class="dropdown-link">
-                                            <?= htmlspecialchars($child['title']) ?>
-                                        </a>
-                                    </li>
-                                <?php endforeach; ?>
-                            </ul>
-                        <?php endif; ?>
-                    </li>
-                <?php endforeach; ?>
-            </ul>
-        </nav>
-
-    </div>
-</header>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const toggleBtn = document.getElementById('mobileMenuToggle');
-    const primaryNav = document.getElementById('primaryNavigation');
-
-    if (!toggleBtn || !primaryNav) return;
-
-    toggleBtn.addEventListener('click', function() {
-        const isOpen = primaryNav.classList.toggle('is-open');
-        toggleBtn.classList.toggle('is-active');
-        toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-    });
-
-    // Close mobile menu when clicking outside
-    document.addEventListener('click', function(e) {
-        if (!primaryNav.contains(e.target) && !toggleBtn.contains(e.target) && primaryNav.classList.contains('is-open')) {
-            primaryNav.classList.remove('is-open');
-            toggleBtn.classList.remove('is-active');
-            toggleBtn.setAttribute('aria-expanded', 'false');
-        }
-    });
-
-    // Toggle dropdowns on mobile touch/click
-    const dropdownItems = primaryNav.querySelectorAll('.has-dropdown > .nav-link');
-    dropdownItems.forEach(function(item) {
-        item.addEventListener('click', function(e) {
-            if (window.innerWidth <= 768) {
-                e.preventDefault();
-                this.parentElement.classList.toggle('dropdown-open');
+        // Close when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!navMenu.contains(e.target) && !toggleBtn.contains(e.target) && navMenu.classList.contains('is-open')) {
+                navMenu.classList.remove('is-open');
+                toggleBtn.classList.remove('is-active');
+                toggleBtn.setAttribute('aria-expanded', 'false');
             }
         });
+
+        // Expand submenus on touch/click when in mobile view
+        const dropdownToggles = navMenu.querySelectorAll('.has-dropdown > .nav-link');
+        dropdownToggles.forEach(function(link) {
+            link.addEventListener('click', function(e) {
+                if (window.innerWidth <= 768) {
+                    e.preventDefault();
+                    this.closest('.has-dropdown').classList.toggle('dropdown-open');
+                }
+            });
+        });
     });
-});
-</script>
+    </script>
+
+    
 
     <!-- Hero Banner (Subpages) OR Skydio-Style Video Hero (Home Page) -->
     <?php if ($is_home): ?>
