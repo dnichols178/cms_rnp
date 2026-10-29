@@ -1082,3 +1082,171 @@ body {
         grid-template-columns: 1fr;
     }
 }
+/* ==========================================================================
+   Navigation & Responsive Hamburger Menu
+   ========================================================================== */
+
+/* Desktop Navigation Default */
+.primary-nav .nav-menu {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.primary-nav .nav-item {
+    position: relative;
+}
+
+.primary-nav .nav-link {
+    color: var(--frnp-navy, #0b2545);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.95rem;
+    padding: 8px 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: color 0.15s ease;
+}
+
+.primary-nav .nav-link:hover {
+    color: var(--frnp-gold, #c59b27);
+}
+
+/* Desktop Dropdown Menus */
+.primary-nav .dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: #ffffff;
+    min-width: 200px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e2e8f0;
+    border-top: 3px solid var(--frnp-gold, #c59b27);
+    border-radius: 0 0 4px 4px;
+    list-style: none;
+    margin: 0;
+    padding: 6px 0;
+    z-index: 1000;
+}
+
+.primary-nav .has-dropdown:hover .dropdown-menu {
+    display: block;
+}
+
+.primary-nav .dropdown-link {
+    display: block;
+    padding: 8px 16px;
+    color: #334155;
+    text-decoration: none;
+    font-size: 0.88rem;
+    font-weight: 500;
+}
+
+.primary-nav .dropdown-link:hover {
+    background: #f8fafc;
+    color: var(--frnp-navy, #0b2545);
+}
+
+/* Hide Hamburger Toggle on Desktop */
+.mobile-menu-toggle {
+    display: none;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 10px;
+    z-index: 1002;
+}
+
+.mobile-menu-toggle .hamburger-bar {
+    display: block;
+    width: 24px;
+    height: 3px;
+    margin: 4px 0;
+    background-color: var(--frnp-navy, #0b2545);
+    border-radius: 2px;
+    transition: all 0.25s ease-in-out;
+}
+
+/* Animated "X" when open */
+.mobile-menu-toggle.is-active .hamburger-bar:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+}
+.mobile-menu-toggle.is-active .hamburger-bar:nth-child(2) {
+    opacity: 0;
+}
+.mobile-menu-toggle.is-active .hamburger-bar:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+}
+
+/* ==========================================================================
+   Mobile Breakpoint (<= 768px)
+   ========================================================================== */
+@media (max-width: 768px) {
+    /* Show Hamburger Button */
+    .mobile-menu-toggle {
+        display: block;
+    }
+
+    /* Transform Nav to Collapsible Drawer */
+    .primary-nav {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 100%;
+        background: #ffffff;
+        border-top: 1px solid #e2e8f0;
+        border-bottom: 3px solid var(--frnp-gold, #c59b27);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        z-index: 1001;
+    }
+
+    .primary-nav.is-open {
+        display: block;
+    }
+
+    .primary-nav .nav-menu {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
+        padding: 10px 0;
+    }
+
+    .primary-nav .nav-item {
+        width: 100%;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .primary-nav .nav-link {
+        display: flex;
+        justify-content: space-between;
+        padding: 12px 20px;
+        font-size: 1rem;
+    }
+
+    /* Mobile Submenus */
+    .primary-nav .dropdown-menu {
+        position: static;
+        box-shadow: none;
+        border: none;
+        background: #f8fafc;
+        border-top: none;
+        border-radius: 0;
+        padding: 0;
+        display: none;
+    }
+
+    .primary-nav .has-dropdown.dropdown-open .dropdown-menu {
+        display: block;
+    }
+
+    .primary-nav .dropdown-link {
+        padding: 10px 20px 10px 32px;
+        border-top: 1px solid #f1f5f9;
+    }
+}
