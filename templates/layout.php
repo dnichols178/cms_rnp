@@ -128,12 +128,21 @@ $body_class_attr = !empty($body_classes) ? ' class="' . htmlspecialchars(implode
             <?php include __DIR__ . '/node--home.php'; ?>
         <?php else: ?>
             <section class="skydio-hero-wrapper" id="homeHero">
-                <div class="video-crop-container">
-                    <video class="hero-video-element" autoplay muted loop playsinline preload="metadata" poster="<?= base_path('assets/img/hero-poster.webp') ?>" aria-hidden="true">
-                        <source src="<?= base_path('assets/video/deactivation-loop.mp4') ?>" type="video/mp4">
-                    </video>
-                    <div class="hero-scrim-overlay"></div>
-                </div>
+                <?php
+// Resolve hero poster image with .webp to .jpg fallback
+$hero_poster_url = get_site_setting('home_hero_poster', base_path('assets/img/hero-poster.webp'));
+$accepts_webp    = isset($_SERVER['HTTP_ACCEPT']) && str_contains(strtolower($_SERVER['HTTP_ACCEPT']), 'image/webp');
+
+if (!$accepts_webp && str_ends_with(strtolower($hero_poster_url), '.webp')) {
+    $hero_poster_url = preg_replace('/\.webp$/i', '.jpg', $hero_poster_url);
+}
+?>
+<div class="video-crop-container">
+    <video class="hero-video-element" autoplay muted loop playsinline preload="metadata" poster="<?= htmlspecialchars($hero_poster_url, ENT_QUOTES, 'UTF-8') ?>" aria-hidden="true">
+        <source src="<?= base_path('assets/video/deactivation-loop.mp4') ?>" type="video/mp4">
+    </video>
+    <div class="hero-scrim-overlay"></div>
+</div>
                 <div class="hero-foreground-content">
                     <div class="hero-content-inner">
                         <h1 class="hero-main-title"><?= htmlspecialchars(get_site_setting('home_hero_headline', 'Paducah Deactivation Project')) ?></h1>
