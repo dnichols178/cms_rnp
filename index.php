@@ -83,27 +83,26 @@ if ($path === 'contact') {
         $c_ip        = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
         $honeypot    = trim($_POST['frnp_hp_company'] ?? '');
         $submit_time = (int)($_POST['form_token_time'] ?? 0);
-        $user_captcha = trim($_POST['captcha_answer'] ?? '');
-        $expected_captcha = $_SESSION['contact_captcha_answer'] ?? null;
-        unset($_SESSION['contact_captcha_answer']); // Single-use token
 
+        // 1. Silent rejection for bots tripping the hidden honeypot field
         if ($honeypot !== '') {
             watchdog('spam', "Spam bot caught via honeypot trap from IP: {$c_ip}", 'warning');
             $_SESSION['contact_success'] = true;
             set_flash('success', 'Your message has been sent successfully.');
             header('Location: ' . base_path('contact'));
             exit;
-        } elseif ($submit_time === 0 || (time() - $submit_time) < 3) {
+        }
+
+        // 2. Minimum form submission threshold (under 2-3 seconds = bot)
+        if ($submit_time === 0 || (time() - $submit_time) < 3) {
             $_SESSION['contact_error'] = 'Submission completed too quickly. Please take a moment and re-submit.';
             set_flash('error', $_SESSION['contact_error']);
             header('Location: ' . base_path('contact'));
             exit;
-        } elseif ($expected_captcha === null || $user_captcha === '' || (int)$user_captcha !== (int)$expected_captcha) {
-            $_SESSION['contact_error'] = 'Security verification failed: Incorrect CAPTCHA answer. Please solve the arithmetic question.';
-            set_flash('error', $_SESSION['contact_error']);
-            header('Location: ' . base_path('contact'));
-            exit;
-        } elseif ($c_name === '' || $c_email === '' || $c_subject === '' || $c_message === '') {
+        }
+
+        // 3. Required field validation
+        if ($c_name === '' || $c_email === '' || $c_subject === '' || $c_message === '') {
             $_SESSION['contact_error'] = 'All fields are mandatory.';
             set_flash('error', $_SESSION['contact_error']);
             header('Location: ' . base_path('contact'));
@@ -130,18 +129,13 @@ if ($path === 'contact') {
                     ]
                 ]);
             }
+
             $_SESSION['contact_success'] = true;
             set_flash('success', 'Thank you! Your message has been sent successfully.');
             header('Location: ' . base_path('contact'));
             exit;
         }
     }
-
-    // Generate fresh arithmetic challenge
-    $c_num1 = rand(3, 9);
-    $c_num2 = rand(1, 8);
-    $_SESSION['contact_captcha_answer'] = $c_num1 + $c_num2;
-    $captcha_prompt = "{$c_num1} + {$c_num2}";
 
     $contact_success = (bool)($_SESSION['contact_success'] ?? false);
     $contact_error   = (string)($_SESSION['contact_error'] ?? '');
