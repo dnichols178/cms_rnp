@@ -1498,3 +1498,6 @@ td a:hover {
         grid-template-columns: 1fr;
     }
 }
+.trumbowyg-box {
+    height: 250px!important;
+}
