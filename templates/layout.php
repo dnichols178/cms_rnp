@@ -156,7 +156,7 @@ if ($accepts_webp && file_exists($webp_fs_path)) {
                 <div class="hero-foreground-content">
                     <div class="hero-content-inner">
                         <h1 class="hero-main-title"><?= htmlspecialchars(get_site_setting('home_hero_headline', 'Paducah Deactivation Project')) ?></h1>
-                        <p class="hero-tagline"><?= htmlspecialchars(get_site_setting('home_hero_subhead', 'Safe. Compliant. Mission-Driven Environmental Remediation.')) ?></p>
+                        <p class="hero-tagline"><?= htmlspecialchars(get_site_setting('home_hero_subhead', 'Safe. Compliant. Mission-Driven Cleanup.')) ?></p>
                         <div class="hero-button-group">
                             <a href="<?= base_path('program-areas') ?>" class="btn-hero-solid">Explore Operations</a>
                             <a href="#overviewSection" class="btn-hero-translucent" onclick="smoothScrollToOverview(event)">Project Overview &darr;</a>
