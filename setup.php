@@ -116,6 +116,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $can_install) {
                     `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                     `type` VARCHAR(32) NOT NULL,
                     `title` VARCHAR(255) NOT NULL,
+                    `seo_title` VARCHAR(255) NULL DEFAULT NULL,
+                    `seo_description` VARCHAR(500) NULL DEFAULT NULL,
+                    `seo_focus_keyword` VARCHAR(100) NULL DEFAULT NULL,
                     `slug` VARCHAR(255) NOT NULL UNIQUE,
                     `auto_slug` TINYINT(1) NOT NULL DEFAULT 1,
                     `body` MEDIUMTEXT NULL,
@@ -138,6 +141,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $can_install) {
                     `node_id` INT UNSIGNED NOT NULL,
                     `uid` INT UNSIGNED NOT NULL,
                     `title` VARCHAR(255) NOT NULL,
+                    `seo_title` VARCHAR(255) NULL DEFAULT NULL,
+                    `seo_description` VARCHAR(500) NULL DEFAULT NULL,
+                    `seo_focus_keyword` VARCHAR(100) NULL DEFAULT NULL,
                     `body` MEDIUMTEXT NULL,
                     `keywords` TEXT NULL,
                     `fields_data` JSON NULL,
@@ -519,15 +525,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $can_install) {
                 $settings_stmt->execute([$k, $v]);
             }
 
-            // Seed Starter Nodes with Clean Slugs
+            // Seed Starter Nodes with Clean Slugs & SEO Metadata
             $node_stmt = $pdo->prepare("
-                INSERT INTO `nodes` (`type`, `title`, `slug`, `auto_slug`, `body`, `format`, `keywords`, `fields_data`, `uid`, `status`)
-                VALUES (?, ?, ?, 1, ?, 'filtered_html', ?, '{}', ?, 'published')
+                INSERT INTO `nodes` (`type`, `title`, `seo_title`, `seo_description`, `seo_focus_keyword`, `slug`, `auto_slug`, `body`, `format`, `keywords`, `fields_data`, `uid`, `status`)
+                VALUES (?, ?, ?, ?, ?, ?, 1, ?, 'filtered_html', ?, '{}', ?, 'published')
             ");
 
             $node_stmt->execute([
                 'page',
                 'Welcome to the Paducah Deactivation Project',
+                'Paducah Deactivation Project | Four Rivers Nuclear Partnership',
+                'Four Rivers Nuclear Partnership leads the safe, compliant deactivation and environmental remediation of the Paducah Gaseous Diffusion Plant.',
+                'paducah deactivation project',
                 'home',
                 '<p>Four Rivers Nuclear Partnership, LLC (FRNP) leads the safe, compliant deactivation and environmental remediation of the Paducah Gaseous Diffusion Plant for the U.S. Department of Energy (DOE).</p><p>Our dedicated workforce prioritizes safety, operational excellence, and environmental stewardship across western Kentucky.</p>',
                 'home, paducah, environmental remediation, DOE, cleanup',
@@ -538,6 +547,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $can_install) {
             $node_stmt->execute([
                 'page',
                 'About FRNP Leadership & Operations',
+                'About FRNP Leadership & Operations | Four Rivers Nuclear Partnership',
+                'Learn about Four Rivers Nuclear Partnership leadership, mission, and environmental stewardship at the Paducah Deactivation Project.',
+                'leadership and operations',
                 'about-us',
                 '<p>Four Rivers Nuclear Partnership represents a world-class team of nuclear cleanup professionals dedicated to stabilizing infrastructure, remediating legacy facilities, and preparing the Paducah Site for future community missions.</p>',
                 'about us, leadership, mission, stewardship',
@@ -548,6 +560,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $can_install) {
             $node_stmt->execute([
                 'page',
                 'Program Areas & Scope',
+                'Program Areas & Cleanup Scope | Paducah Site',
+                'Explore FRNP operational cleanup programs including Groundwater Protection, Environmental Monitoring, Stabilization & Deactivation, and Waste Disposition.',
+                'program areas and scope',
                 'program-areas',
                 '<p>FRNP manages key operational programs encompassing Groundwater Protection, Environmental Monitoring, Stabilization & Deactivation, and Waste Disposition.</p>',
                 'programs, groundwater, deactivation, waste',
@@ -558,6 +573,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $can_install) {
             $node_stmt->execute([
                 'page',
                 'Contact Communications',
+                'Contact Communications & Media Relations | FRNP',
+                'Contact Four Rivers Nuclear Partnership Public Affairs for site briefings, media inquiries, or community outreach information in Kevil, KY.',
+                'contact communications',
                 'contact',
                 '<p>For public inquiries, media relations, or stakeholder briefings, contact Four Rivers Nuclear Partnership Communications at 5511 Hobbs Road, Kevil, KY 42053.</p>',
                 'contact, office, email, phone, media inquiries',
