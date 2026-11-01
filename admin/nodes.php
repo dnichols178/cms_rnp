@@ -2,6 +2,11 @@
 declare(strict_types=1);
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/content.php';
+if (file_exists(__DIR__ . '/../includes/SEO.php')) {
+    require_once __DIR__ . '/../includes/SEO.php';
+} elseif (file_exists(__DIR__ . '/../includes/seo.php')) {
+    require_once __DIR__ . '/../includes/seo.php';
+}
 require_permission('create_content');
 
 $db = get_db();
@@ -103,6 +108,7 @@ if ($date_to !== '') {
 
 $sql = '
     SELECT n.id, n.type, n.title, n.slug, n.status, n.created_at, n.updated_at, 
+           n.seo_title, n.seo_description, n.seo_focus_keyword, n.body,
            ct.name AS content_type_label, u.username
     FROM nodes n
     JOIN content_types ct ON ct.type = n.type
@@ -271,6 +277,7 @@ $statuses = [
                                 <th>Type</th>
                                 <th>Author</th>
                                 <th>Status</th>
+                                <th>SEO</th>
                                 <th>Created</th>
                                 <th>Modified</th>
                                 <th style="text-align: right;">Actions</th>
@@ -278,7 +285,7 @@ $statuses = [
                         </thead>
                         <tbody>
                             <?php if (empty($nodes)): ?>
-                                <tr><td colspan="8" style="text-align:center; color:#777; padding:24px;">No content nodes found matching your criteria.</td></tr>
+                                <tr><td colspan="9" style="text-align:center; color:#777; padding:24px;">No content nodes found matching your criteria.</td></tr>
                             <?php else: ?>
                                 <?php foreach ($nodes as $n): ?>
                                 <tr>
@@ -303,6 +310,42 @@ $statuses = [
                                         <span class="badge-status <?= $badgeClass ?>">
                                             <?= htmlspecialchars(strtoupper(str_replace('_', ' ', (string)$n['status']))) ?>
                                         </span>
+                                    </td>
+                                    <td>
+                                        <?php if (empty($n['seo_focus_keyword'])): ?>
+                                            <span class="badge-status" style="background:#64748b; color:#fff;" title="No focus keyphrase set">Not Set</span>
+                                        <?php else: ?>
+                                            <?php
+                                                $seo_score = 0;
+                                                if (function_exists('calculate_seo_score')) {
+                                                    $t_eval = !empty($n['seo_title']) ? $n['seo_title'] : $n['title'];
+                                                    $d_eval = (string)($n['seo_description'] ?? '');
+                                                    $k_eval = (string)($n['seo_focus_keyword'] ?? '');
+                                                    $b_eval = (string)($n['body'] ?? '');
+                                                    $s_eval = (string)($n['slug'] ?? '');
+                                                    $seo_eval = calculate_seo_score($t_eval, $d_eval, $k_eval, $b_eval, $s_eval);
+                                                    $seo_score = (int)($seo_eval['score'] ?? 0);
+                                                } else {
+                                                    $seo_score = 100;
+                                                    if (empty($n['seo_title'])) $seo_score -= 20;
+                                                    if (empty($n['seo_description'])) $seo_score -= 20;
+                                                }
+
+                                                if ($seo_score >= 80) {
+                                                    $seo_bg = '#10b981';
+                                                    $seo_label = 'Good';
+                                                } elseif ($seo_score >= 50) {
+                                                    $seo_bg = '#d97706';
+                                                    $seo_label = 'OK';
+                                                } else {
+                                                    $seo_bg = '#dc2626';
+                                                    $seo_label = 'Needs Work';
+                                                }
+                                            ?>
+                                            <span class="badge-status" style="background: <?= $seo_bg ?>; color: #fff;" title="Focus: <?= htmlspecialchars((string)$n['seo_focus_keyword']) ?> (<?= $seo_score ?>/100)">
+                                                <?= $seo_label ?>
+                                            </span>
+                                        <?php endif; ?>
                                     </td>
                                     <td><?= date('M j, Y', strtotime($n['created_at'])) ?></td>
                                     <td>
