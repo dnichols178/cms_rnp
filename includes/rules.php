@@ -203,8 +203,27 @@ function rules_execute_action(array $action, array $context, array $rule): void 
         $body    = rules_replace_tokens((string)($action['message'] ?? ''), $context);
 
         if (filter_var($to, FILTER_VALIDATE_EMAIL)) {
-            $site_name = function_exists('get_site_setting') ? get_site_setting('site_name', 'Four Rivers Nuclear Partnership') : 'Four Rivers Nuclear Partnership';
-            queue_email($to, $subject, $body, $to_name, $site_name, 1);
+            // Optional Call-to-Action button resolution (e.g. from event form or node)
+            $cta_url = null;
+            $cta_label = null;
+            if (!empty($action['cta_url'])) {
+                $cta_url   = rules_replace_tokens((string)$action['cta_url'], $context);
+                $cta_label = !empty($action['cta_label']) ? rules_replace_tokens((string)$action['cta_label'], $context) : 'View Details';
+            } elseif (!empty($context['form']['slug'])) {
+                $cta_url   = 'https://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . (function_exists('base_path') ? base_path($context['form']['slug']) : '/' . ltrim($context['form']['slug'], '/'));
+                $cta_label = 'View Event Details';
+            } elseif (!empty($context['node']['slug'])) {
+                $cta_url   = 'https://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . (function_exists('base_path') ? base_path($context['node']['slug']) : '/' . ltrim($context['node']['slug'], '/'));
+                $cta_label = 'View Page';
+            }
+
+            // Wrap the HTML body in the system branded email template
+            $email_html = function_exists('build_frnp_email_html')
+                ? build_frnp_email_html($subject, $body, $cta_url, $cta_label)
+                : $body;
+
+            // Queue with correct parameter alignment: ($recipient, $subject, $html_body, $text_body, $recipient_name, $priority)
+            queue_email($to, $subject, $email_html, '', !empty($to_name) ? $to_name : null, 1);
             watchdog('rules', "Rule '{$rule['label']}' dispatched email to {$to} [Subject: {$subject}]", 'notice');
         } else {
             watchdog('rules', "Rule '{$rule['label']}' failed: Invalid recipient address '{$to}'", 'warning');
@@ -290,7 +309,30 @@ function rules_replace_tokens(string $text, array $context): string {
             $ts = strtotime($tour_date);
             $tour_date_formatted = date('l, F j, Y', $ts);
         }
-        $tour_time = (string)($form['tour_time'] ?? '');
+        // Resolve attendee's specific registered tour time
+        $tour_time = '';
+        if (!empty($reg['slot_time'])) {
+            $tour_time = (string)$reg['slot_time'];
+        } elseif (!empty($reg['slot_id'])) {
+            try {
+                $db = get_db();
+                $slot_stmt = $db->prepare('SELECT slot_time FROM registration_time_slots WHERE id = :sid LIMIT 1');
+                $slot_stmt->execute(['sid' => (int)$reg['slot_id']]);
+                $slot_val = $slot_stmt->fetchColumn();
+                if ($slot_val) {
+                    $tour_time = (string)$slot_val;
+                }
+            } catch (\Throwable $e) {}
+        }
+
+        // Fallback to submission data or form-level tour time if no slot was recorded
+        if ($tour_time === '' && !empty($sub_data['slot_time'])) {
+            $tour_time = (string)$sub_data['slot_time'];
+        } elseif ($tour_time === '' && !empty($sub_data['tour_time'])) {
+            $tour_time = (string)$sub_data['tour_time'];
+        } elseif ($tour_time === '') {
+            $tour_time = (string)($form['tour_time'] ?? '');
+        }
 
         $name = !empty($reg['name']) ? $reg['name'] : ($sub_data['full_name'] ?? '');
         $dl_state = $sub_data['dl_state'] ?? ($reg['dl_state'] ?? '');
@@ -340,6 +382,9 @@ function rules_replace_tokens(string $text, array $context): string {
         $replacements['[tour:date]']                 = $tour_date;
         $replacements['[tour:date_formatted]']       = $tour_date_formatted;
         $replacements['[tour:time]']                 = $tour_time;
+        $replacements['[tour:all_times]']             = (string)($form['tour_time'] ?? '');
+        $replacements['[registration:slot_time]']     = $tour_time;
+        $replacements['[registration:tour_time]']     = $tour_time;
 
         // Custom schema attributes
         foreach ($sub_data as $sk => $sv) {
