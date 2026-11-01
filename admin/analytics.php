@@ -14,51 +14,8 @@ $metrics = get_realtime_metrics();
     <title>Real-Time Site Analytics - FRNP CMS</title>
     <link rel="stylesheet" href="<?= base_path('assets/css/admin.css') ?>">
     <meta http-equiv="refresh" content="30">
-    <style>
-        .stat-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 20px;
-            margin-bottom: 25px;
-        }
-        .stat-card {
-            background: #fff;
-            padding: 20px;
-            border-radius: 6px;
-            border: 1px solid #e2e8f0;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        }
-        .stat-val {
-            font-size: 2.2rem;
-            font-weight: 800;
-            color: #0b2545;
-            line-height: 1.1;
-        }
-        .stat-label {
-            font-size: 0.85rem;
-            color: #64748b;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-top: 6px;
-        }
-        .live-pulse {
-            display: inline-block;
-            width: 10px;
-            height: 10px;
-            background: #10b981;
-            border-radius: 50%;
-            margin-right: 6px;
-            box-shadow: 0 0 0 rgba(16, 185, 129, 0.4);
-            animation: pulse 1.5s infinite;
-        }
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-            70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-        }
-    </style>
 </head>
-<body>
+<body class="stat-body">
     <div class="admin-wrapper">
         <?php require __DIR__ . '/nav.php'; ?>
         <main class="admin-main">
