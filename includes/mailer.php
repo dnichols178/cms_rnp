@@ -23,6 +23,57 @@ function queue_email(string $recipient, string $subject, string $html_body, stri
 }
 
 /**
+ * Wraps content in a neutral, modern card layout (no organization branding).
+ */
+function build_generic_email_html(string $title, string $message_content, ?string $call_to_action_url = null, ?string $call_to_action_label = null): string {
+    $site_name = htmlspecialchars(get_site_setting('site_name', 'Notification System'));
+    $cta_block = '';
+    if (!empty($call_to_action_url) && !empty($call_to_action_label)) {
+        $cta_block = '
+        <div style="margin: 24px 0 8px;">
+            <a href="' . htmlspecialchars($call_to_action_url) . '"
+               style="background-color: #2563eb; color: #ffffff; text-decoration: none; padding: 10px 20px; font-weight: 600; font-size: 14px; border-radius: 4px; display: inline-block;">
+                ' . htmlspecialchars($call_to_action_label) . ' &raquo;
+            </a>
+        </div>';
+    }
+
+    return <<<HTML
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{$title}</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f1f5f9; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color:#334155; line-height:1.6;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f1f5f9; padding:30px 12px;">
+        <tr>
+            <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:6px; overflow:hidden; border:1px solid #cbd5e1; box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+                    <tr>
+                        <td style="padding:28px 32px 24px;">
+                            <h2 style="margin:0 0 16px; color:#0f172a; font-size:20px; font-weight:700;">{$title}</h2>
+                            <div style="font-size:15px; color:#334155;">
+                                {$message_content}
+                            </div>
+                            {$cta_block}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="background-color:#f8fafc; padding:14px 32px; border-top:1px solid #e2e8f0; font-size:11px; color:#94a3b8; text-align:center;">
+                            Sent automatically via {$site_name}
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+HTML;
+}
+
+/**
  * Wraps content in the branded FRNP HTML notification layout.
  */
 function build_frnp_email_html(string $title, string $message_content, ?string $call_to_action_url = null, ?string $call_to_action_label = null): string {
