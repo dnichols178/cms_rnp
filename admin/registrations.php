@@ -1432,17 +1432,18 @@ if ($active_form) {
                         Insert Tokens (Click any token to append to body):
                     </label>
                     <div style="display: flex; flex-wrap: wrap; gap: 6px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; padding: 8px 10px;">
-                        <button type="button" class="btn-secondary" style="font-size: 0.74rem; padding: 2px 7px; font-family: monospace;" onclick="insertEmailToken('[registration:name]')">[registration:name]</button>
-                        <button type="button" class="btn-secondary" style="font-size: 0.74rem; padding: 2px 7px; font-family: monospace;" onclick="insertEmailToken('[registration:email]')">[registration:email]</button>
-                        <button type="button" class="btn-secondary" style="font-size: 0.74rem; padding: 2px 7px; font-family: monospace;" onclick="insertEmailToken('[registration:confirmation_number]')">[registration:confirmation_number]</button>
-                        <button type="button" class="btn-secondary" style="font-size: 0.74rem; padding: 2px 7px; font-family: monospace;" onclick="insertEmailToken('[registration:state]')">[registration:state]</button>
-                        <button type="button" class="btn-secondary" style="font-size: 0.74rem; padding: 2px 7px; font-family: monospace;" onclick="insertEmailToken('[registration:phone]')">[registration:phone]</button>
-                        <button type="button" class="btn-secondary" style="font-size: 0.74rem; padding: 2px 7px; font-family: monospace;" onclick="insertEmailToken('[form:title]')">[form:title]</button>
-                        <button type="button" class="btn-secondary" style="font-size: 0.74rem; padding: 2px 7px; font-family: monospace;" onclick="insertEmailToken('[tour:date_formatted]')">[tour:date_formatted]</button>
-                        <button type="button" class="btn-secondary" style="font-size: 0.74rem; padding: 2px 7px; font-family: monospace;" onclick="insertEmailToken('[tour:time]')">[tour:time]</button>
-                        <button type="button" class="btn-secondary" style="font-size: 0.74rem; padding: 2px 7px; font-family: monospace;" onclick="insertEmailToken('[site:name]')">[site:name]</button>
-                        <button type="button" class="btn-secondary" style="font-size: 0.74rem; padding: 2px 7px; font-family: monospace;" onclick="insertEmailToken('[registration:summary]')">[registration:summary]</button>
-                    </div>
+    <button type="button" class="btn-secondary" style="font-size: 0.74rem; padding: 2px 7px; font-family: monospace;" onclick="insertEmailToken('[registration:name]')">[registration:name]</button>
+    <button type="button" class="btn-secondary" style="font-size: 0.74rem; padding: 2px 7px; font-family: monospace;" onclick="insertEmailToken('[registration:email]')">[registration:email]</button>
+    <button type="button" class="btn-secondary" style="font-size: 0.74rem; padding: 2px 7px; font-family: monospace;" onclick="insertEmailToken('[registration:confirmation_number]')">[registration:confirmation_number]</button>
+    <button type="button" class="btn-secondary" style="font-size: 0.74rem; padding: 2px 7px; font-family: monospace;" onclick="insertEmailToken('[registration:state]')">[registration:state]</button>
+    <button type="button" class="btn-secondary" style="font-size: 0.74rem; padding: 2px 7px; font-family: monospace;" onclick="insertEmailToken('[registration:phone]')">[registration:phone]</button>
+    <button type="button" class="btn-secondary" style="font-size: 0.74rem; padding: 2px 7px; font-family: monospace;" onclick="insertEmailToken('[form:title]')">[form:title]</button>
+    <button type="button" class="btn-secondary" style="font-size: 0.74rem; padding: 2px 7px; font-family: monospace;" onclick="insertEmailToken('[tour:date_formatted]')">[tour:date_formatted]</button>
+    <button type="button" class="btn-secondary" style="font-size: 0.74rem; padding: 2px 7px; font-family: monospace;" onclick="insertEmailToken('[tour:time]')">[tour:time]</button>
+    <button type="button" class="btn-secondary" style="font-size: 0.74rem; padding: 2px 7px; font-family: monospace;" onclick="insertEmailToken('[tour:all_times]')">[tour:all_times]</button>
+    <button type="button" class="btn-secondary" style="font-size: 0.74rem; padding: 2px 7px; font-family: monospace;" onclick="insertEmailToken('[site:name]')">[site:name]</button>
+    <button type="button" class="btn-secondary" style="font-size: 0.74rem; padding: 2px 7px; font-family: monospace;" onclick="insertEmailToken('[registration:summary]')">[registration:summary]</button>
+</div>
                 </div>
 
                 <div class="form-row" style="margin-bottom: 20px;">
