@@ -40,6 +40,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['type'
 }
 
 // 2. Action: Create Content Type
+// 2. Action: Create Content Type
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'create_type') {
     validate_csrf();
 
@@ -49,35 +50,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $has_body     = isset($_POST['has_body']) ? 1 : 0;
     $url_pattern  = trim($_POST['url_pattern'] ?? '[node:title]');
 
+    $field_modes  = $_POST['field_mode'] ?? []; // 'existing' or 'new'
+    $existing_names = $_POST['existing_field_name'] ?? [];
     $field_names  = $_POST['field_name'] ?? [];
     $field_labels = $_POST['field_label'] ?? [];
     $field_types  = $_POST['field_type'] ?? [];
     $schema       = [];
 
-    if (is_array($field_names)) {
-        for ($i = 0; $i < count($field_names); $i++) {
-            $flabel = trim($field_labels[$i] ?? '');
-            $fname  = preg_replace('/[^a-z0-9_]/', '', strtolower(trim($field_names[$i] ?? '')));
-
-            // Fallback generation if label was entered but machine name was left blank
-            if ($fname === '' && $flabel !== '') {
-                $fname = preg_replace('/[^a-z0-9_]/', '', strtolower(str_replace(' ', '_', $flabel)));
+    // Gather all existing global fields across content types to pull definitions from if re-used
+    $all_global_fields = [];
+    foreach (get_content_types() as $ct_item) {
+        $ct_schema = $ct_item['fields_schema'] ?? [];
+        if (is_string($ct_schema)) {
+            $ct_schema = json_decode($ct_schema, true) ?? [];
+        }
+        foreach ($ct_schema as $f_def) {
+            if (isset($f_def['name'])) {
+                $all_global_fields[$f_def['name']] = $f_def;
             }
+        }
+    }
 
-            if ($fname !== '') {
-                if (!str_starts_with($fname, 'field_')) {
-                    $fname = 'field_' . $fname;
+    if (is_array($field_modes)) {
+        for ($i = 0; $i < count($field_modes); $i++) {
+            $mode = $field_modes[$i] ?? 'new';
+
+            if ($mode === 'existing') {
+                $fname = trim($existing_names[$i] ?? '');
+                if ($fname !== '' && isset($all_global_fields[$fname])) {
+                    // Re-use existing field definition
+                    $schema[] = $all_global_fields[$fname];
                 }
-                $schema[] = [
-                    'name'          => $fname,
-                    'label'         => $flabel !== '' ? $flabel : $fname,
-                    'type'          => trim($field_types[$i] ?? 'text'),
-                    'help_text'     => '',
-                    'required'      => 0,
-                    'label_display' => 'above',
-                    'weight'        => ($i + 1) * 10,
-                    'options'       => []
-                ];
+            } else {
+                $flabel = trim($field_labels[$i] ?? '');
+                $fname  = preg_replace('/[^a-z0-9_]/', '', strtolower(trim($field_names[$i] ?? '')));
+
+                if ($fname === '' && $flabel !== '') {
+                    $fname = preg_replace('/[^a-z0-9_]/', '', strtolower(str_replace(' ', '_', $flabel)));
+                }
+
+                if ($fname !== '') {
+                    if (!str_starts_with($fname, 'field_')) {
+                        $fname = 'field_' . $fname;
+                    }
+                    $schema[] = [
+                        'name'          => $fname,
+                        'label'         => $flabel !== '' ? $flabel : $fname,
+                        'type'          => trim($field_types[$i] ?? 'text'),
+                        'help_text'     => '',
+                        'required'      => 0,
+                        'label_display' => 'above',
+                        'weight'        => ($i + 1) * 10,
+                        'options'       => []
+                    ];
+                }
             }
         }
     }
@@ -102,8 +128,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $error = 'Both Human Name and Machine Name are required.';
     }
 }
-
 $types = get_content_types();
+
+// Collect unique existing fields for re-use dropdown options
+$unique_existing_fields = [];
+foreach ($types as $t_item) {
+    $t_schema = $t_item['fields_schema'] ?? [];
+    if (is_string($t_schema)) {
+        $t_schema = json_decode($t_schema, true) ?? [];
+    }
+    if (is_array($t_schema)) {
+        foreach ($t_schema as $f_def) {
+            if (!empty($f_def['name'])) {
+                $unique_existing_fields[$f_def['name']] = $f_def['label'] . ' (' . $f_def['name'] . ')';
+            }
+        }
+    }
+}
+ksort($unique_existing_fields);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -111,74 +153,6 @@ $types = get_content_types();
     <meta charset="UTF-8">
     <title>Content Types - FRNP CMS</title>
     <link rel="stylesheet" href="<?= base_path('assets/css/admin.css') ?>">
-    <style>
-        .initial-fields-box {
-            background: #f8fafc;
-            border: 1px solid #cbd5e1;
-            border-radius: 6px;
-            padding: 18px 20px;
-            margin: 20px 0;
-        }
-        .initial-fields-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid #e2e8f0;
-        }
-        .initial-fields-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        .initial-fields-table th {
-            text-align: left;
-            padding: 6px 8px;
-            font-size: 0.78rem;
-            color: #64748b;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .initial-fields-table td {
-            padding: 6px 8px;
-            vertical-align: middle;
-        }
-        .field-mono-input {
-            font-family: monospace;
-            background: #ffffff;
-        }
-        .btn-remove-row {
-            background: #fee2e2;
-            border: 1px solid #fca5a5;
-            color: #dc2626;
-            border-radius: 4px;
-            padding: 6px 10px;
-            cursor: pointer;
-            font-size: 0.85rem;
-            line-height: 1;
-            font-weight: bold;
-            transition: all 0.15s ease;
-        }
-        .btn-remove-row:hover {
-            background: #dc2626;
-            color: #ffffff;
-        }
-        .btn-add-field {
-            background: #ffffff;
-            border: 1px dashed #0b2545;
-            color: #0b2545;
-            font-weight: 600;
-            padding: 6px 14px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.82rem;
-            transition: all 0.15s ease;
-        }
-        .btn-add-field:hover {
-            background: #0b2545;
-            color: #ffffff;
-        }
-    </style>
 </head>
 <body>
     <div class="admin-wrapper">
@@ -199,7 +173,10 @@ $types = get_content_types();
             <?php endif; ?>
 
             <section class="card">
-                <h3>Existing Content Types</h3>
+                <div style="display: flex;justify-content: space-between;align-items: center;margin-bottom: 20px;">
+                    <h3 style="margin: 0;">Existing Content Types</h3>
+                    <button type="button" class="btn-primary" onclick="openCreateTypeModal()" style="white-space: nowrap;">+ Add New Content Type</button>
+                </div>
                 <table>
                     <thead>
                         <tr>
@@ -242,99 +219,148 @@ $types = get_content_types();
                     </tbody>
                 </table>
             </section>
-
-            <section class="card">
-                <h3>Create New Content Type</h3>
-                <form method="POST">
-                    <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
-                    <input type="hidden" name="action" value="create_type">
-
-                    <div class="form-row">
-                        <label>Human Name *</label>
-                        <input type="text" name="name" id="ct_human_name" required placeholder="e.g. Safety Bulletin">
-                    </div>
-
-                    <div class="form-row">
-                        <label>Machine Name (Type) *</label>
-                        <input type="text" name="type" id="ct_machine_name" required placeholder="e.g. safety_bulletin" class="field-mono-input">
-                        <small style="color: #666;">Unique system identifier. Letters, numbers, and underscores only.</small>
-                    </div>
-
-                    <div class="form-row">
-                        <label>Description</label>
-                        <textarea name="description" rows="2" placeholder="Describe the purpose of this content type."></textarea>
-                    </div>
-
-                    <div class="form-row">
-                        <label>
-                            <input type="checkbox" name="has_body" value="1" checked> 
-                            Enable default WYSIWYG Body Field
-                        </label>
-                    </div>
-
-                    <div class="form-row">
-                        <label>Pathauto URL Pattern *</label>
-                        <input type="text" name="url_pattern" value="[node:title]" required class="field-mono-input">
-                        <small style="color: #64748b;">Pattern tokens: <code>[node:title]</code>, <code>[node:type]</code>, <code>[node:created:Y]</code>, <code>[node:created:m]</code>, <code>[term:slug]</code></small>
-                    </div>
-
-                    <!-- Styled Initial Fields Container -->
-                    <div class="initial-fields-box">
-                        <div class="initial-fields-header">
-                            <div>
-                                <h4 style="margin:0; color:#0b2545;">Initial Fields (Optional)</h4>
-                                <span style="font-size:0.82rem; color:#64748b;">Add initial fields now, or configure advanced options later in "Manage Fields".</span>
-                            </div>
-                            <button type="button" onclick="addFieldRow()" class="btn-add-field">+ Add Another Field</button>
-                        </div>
-
-                        <table class="initial-fields-table">
-                            <thead>
-                                <tr>
-                                    <th style="width: 38%;">Field Label</th>
-                                    <th style="width: 38%;">Machine Name</th>
-                                    <th style="width: 20%;">Field Type</th>
-                                    <th style="width: 4%;"></th>
-                                </tr>
-                            </thead>
-                            <tbody id="fields-container">
-                                <tr class="field-item-row">
-                                    <td>
-                                        <input type="text" name="field_label[]" placeholder="e.g. Project Topic" oninput="autoGenerateFieldName(this)" style="width:100%; box-sizing:border-box;">
-                                    </td>
-                                    <td>
-                                        <input type="text" name="field_name[]" placeholder="field_project_topic" class="field-name-input field-mono-input" style="width:100%; box-sizing:border-box;">
-                                    </td>
-                                    <td>
-                                        <select name="field_type[]" style="width:100%; box-sizing:border-box;">
-                                            <option value="text">Text (Single Line)</option>
-                                            <option value="taxonomy_term">Taxonomy Terms</option>
-                                            <option value="textarea">Long Text</option>
-                                            <option value="number">Number</option>
-                                            <option value="date">Date</option>
-                                            <option value="file">File Attachment</option>
-                                            <option value="image">Image Upload</option>
-                                            <option value="video">Video (YouTube URL)</option>
-                                            <option value="boolean">Boolean Checkbox</option>
-                                        </select>
-                                    </td>
-                                    <td style="text-align:center;">
-                                        <button type="button" class="btn-remove-row" onclick="removeFieldRow(this)" title="Remove field">&times;</button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div style="margin-top: 25px;">
-                        <button type="submit" class="btn-primary">Save Content Type</button>
-                    </div>
-                </form>
-            </section>
         </main>
     </div>
 
+    <!-- Modal for Creating Content Type -->
+    <div id="createTypeModal" class="modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5);">
+        <div class="modal-content" style="background-color: #fefefe; margin: 3% auto; padding: 25px; border: 1px solid #888; width: 780px; max-width: 95vw; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-height: 90vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 20px;">
+                <h3 style="margin: 0; color: #0b2545;">Create New Content Type</h3>
+                <button type="button" onclick="closeCreateTypeModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #64748b;">&times;</button>
+            </div>
+            
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
+                <input type="hidden" name="action" value="create_type">
+
+                <div class="form-row">
+                    <label>Human Name *</label>
+                    <input type="text" name="name" id="ct_human_name" required placeholder="e.g. Safety Bulletin">
+                </div>
+
+                <div class="form-row">
+                    <label>Machine Name (Type) *</label>
+                    <input type="text" name="type" id="ct_machine_name" required placeholder="e.g. safety_bulletin" class="field-mono-input">
+                    <small style="color: #666;">Unique system identifier. Letters, numbers, and underscores only.</small>
+                </div>
+
+                <div class="form-row">
+                    <label>Description</label>
+                    <textarea name="description" rows="2" placeholder="Describe the purpose of this content type."></textarea>
+                </div>
+
+                <div class="form-row">
+                    <label>
+                        <input type="checkbox" name="has_body" value="1" checked> 
+                        Enable default WYSIWYG Body Field
+                    </label>
+                </div>
+
+                <div class="form-row">
+                    <label>Pathauto URL Pattern *</label>
+                    <input type="text" name="url_pattern" value="[node:title]" required class="field-mono-input">
+                    <small style="color: #64748b;">Pattern tokens: <code>[node:title]</code>, <code>[node:type]</code>, <code>[node:created:Y]</code>, <code>[node:created:m]</code>, <code>[term:slug]</code></small>
+                </div>
+
+                <!-- Styled Initial Fields Container -->
+<!-- Styled Initial Fields Container -->
+                <div class="initial-fields-box">
+                    <div class="initial-fields-header">
+                        <div>
+                            <h4 style="margin:0; color:#0b2545;">Initial Fields (Optional)</h4>
+                            <span style="font-size:0.82rem; color:#64748b;">Add new fields or re-use existing system fields.</span>
+                        </div>
+                        <button type="button" onclick="addFieldRow()" class="btn-add-field">+ Add Another Field</button>
+                    </div>
+
+                    <table class="initial-fields-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 20%;">Field Source</th>
+                                <th style="width: 56%;">Field Configuration</th>
+                                <th style="width: 20%;">Field Type</th>
+                                <th style="width: 4%;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="fields-container">
+                            <tr class="field-item-row">
+                                <td>
+                                    <select name="field_mode[]" onchange="toggleFieldMode(this)" style="width:100%; box-sizing:border-box;">
+                                        <option value="new">Create New</option>
+                                        <option value="existing">Use Existing</option>
+                                    </select>
+                                </td>
+                                <td class="field-inputs-cell">
+                                    <!-- New Field Inputs -->
+                                    <div class="new-field-group">
+                                        <input type="text" name="field_label[]" placeholder="Field Label (e.g. Topic)" oninput="autoGenerateFieldName(this)" style="width:100%; box-sizing:border-box; margin-bottom:4px;">
+                                        <input type="text" name="field_name[]" placeholder="field_machine_name" class="field-name-input field-mono-input" style="width:100%; box-sizing:border-box;">
+                                    </div>
+                                    <!-- Existing Field Dropdown -->
+                                    <div class="existing-field-group" style="display: none;">
+                                        <select name="existing_field_name[]" style="width:100%; box-sizing:border-box;">
+                                            <option value="">-- Select Existing Field --</option>
+                                            <?php foreach ($unique_existing_fields as $ef_name => $ef_label): ?>
+                                                <option value="<?= htmlspecialchars($ef_name) ?>"><?= htmlspecialchars($ef_label) ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                </td>
+                                <td>
+                                    <select name="field_type[]" class="field-type-select" style="width:100%; box-sizing:border-box;">
+                                        <option value="text">Text (Single Line)</option>
+                                        <option value="taxonomy_term">Taxonomy Terms</option>
+                                        <option value="textarea">Long Text</option>
+                                        <option value="number">Number</option>
+                                        <option value="date">Date</option>
+                                        <option value="file">File Attachment</option>
+                                        <option value="image">Image Upload</option>
+                                        <option value="video">Video (YouTube URL)</option>
+                                        <option value="boolean">Boolean Checkbox</option>
+                                    </select>
+                                </td>
+                                <td style="text-align:center;">
+                                    <button type="button" class="btn-remove-row" onclick="removeFieldRow(this)" title="Remove field">&times;</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div style="margin-top: 25px; display: flex; justify-content: flex-end; gap: 10px;">
+                    <button type="button" class="btn-secondary" onclick="closeCreateTypeModal()">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Content Type</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
+        // Modal Control Functions
+        function openCreateTypeModal() {
+            document.getElementById('createTypeModal').style.display = 'block';
+        }
+
+        function closeCreateTypeModal() {
+            document.getElementById('createTypeModal').style.display = 'none';
+        }
+
+        // Close modal when clicking outside of modal-content
+        window.onclick = function(event) {
+            const modal = document.getElementById('createTypeModal');
+            if (event.target === modal) {
+                closeCreateTypeModal();
+            }
+        };
+
+        // Automatically open modal if there was a form submission error
+        <?php if ($error && $_SERVER['REQUEST_METHOD'] === 'POST'): ?>
+        document.addEventListener('DOMContentLoaded', function() {
+            openCreateTypeModal();
+        });
+        <?php endif; ?>
+
         // Auto-generate Content Type machine name from Human Name
         const ctHumanName = document.getElementById('ct_human_name');
         const ctMachineName = document.getElementById('ct_machine_name');
@@ -383,19 +409,52 @@ $types = get_content_types();
         });
 
         // Add new field row
+// Toggle between Creating New Field vs Using Existing Field
+        function toggleFieldMode(selectElem) {
+            const row = selectElem.closest('tr');
+            const newGroup = row.querySelector('.new-field-group');
+            const existingGroup = row.querySelector('.existing-field-group');
+            const typeSelect = row.querySelector('.field-type-select');
+
+            if (selectElem.value === 'existing') {
+                newGroup.style.display = 'none';
+                existingGroup.style.display = 'block';
+                if (typeSelect) typeSelect.disabled = true;
+            } else {
+                newGroup.style.display = 'block';
+                existingGroup.style.display = 'none';
+                if (typeSelect) typeSelect.disabled = false;
+            }
+        }
+
+        // Updated Add Field Row supporting both modes
         function addFieldRow() {
             const container = document.getElementById('fields-container');
             const row = document.createElement('tr');
             row.className = 'field-item-row';
             row.innerHTML = `
                 <td>
-                    <input type="text" name="field_label[]" placeholder="Field Label" oninput="autoGenerateFieldName(this)" style="width:100%; box-sizing:border-box;">
+                    <select name="field_mode[]" onchange="toggleFieldMode(this)" style="width:100%; box-sizing:border-box;">
+                        <option value="new">Create New</option>
+                        <option value="existing">Use Existing</option>
+                    </select>
+                </td>
+                <td class="field-inputs-cell">
+                    <div class="new-field-group">
+                        <input type="text" name="field_label[]" placeholder="Field Label" oninput="autoGenerateFieldName(this)" style="width:100%; box-sizing:border-box; margin-bottom:4px;">
+                        <input type="text" name="field_name[]" placeholder="field_machine_name" class="field-name-input field-mono-input" style="width:100%; box-sizing:border-box;">
+                    </div>
+                    <div class="existing-field-group" style="display: none;">
+                        <select name="existing_field_name[]" style="width:100%; box-sizing:border-box;">
+                            <option value="">-- Select Existing Field --</option>
+                            <?php foreach ($unique_existing_fields as $ef_name => $ef_label): ?>
+                                <option value="<?= htmlspecialchars($ef_name) ?>"><?= htmlspecialchars($ef_label) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
                 </td>
                 <td>
-                    <input type="text" name="field_name[]" placeholder="field_machine_name" class="field-name-input field-mono-input" style="width:100%; box-sizing:border-box;">
-                </td>
-                <td>
-                    <select name="field_type[]" style="width:100%; box-sizing:border-box;">
+                    <select name="field_type[]" class="field-type-select" style="width:100%; box-sizing:border-box;">
                         <option value="text">Text (Single Line)</option>
                         <option value="taxonomy_term">Taxonomy Terms</option>
                         <option value="textarea">Long Text</option>
