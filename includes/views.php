@@ -696,7 +696,6 @@ function render_view(string|array $view_input, string $display_id = '', array $e
                     <?php endif; ?>
                 </div>
             <?php endif; ?>
-            <?php endif; ?>
         <?php endif; ?>
     </div>
     <?php
