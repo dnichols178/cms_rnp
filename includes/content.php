@@ -16,25 +16,25 @@ if (!function_exists('base_path')) {
      *  base_path('admin/nodes.php') => "/admin/nodes.php" or "/cms/admin/nodes.php"
      */
     function base_path(string $path = ''): string {
-    static $base = null;
-    if ($base === null) {
-        $script = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '');
-        if (preg_match('#^(.*?)/(admin|api|includes|custom_pages)/#', $script, $matches)) {
-            $base = rtrim($matches[1], '/');
-        } else {
-            $dir = dirname($script);
-            $base = ($dir === '/' || $dir === '\\' || $dir === '.') ? '' : rtrim($dir, '/');
+        static $base = null;
+        if ($base === null) {
+            $script = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '');
+            if (preg_match('#^(.*?)/(admin|api|includes|custom_pages)/#', $script, $matches)) {
+                $base = rtrim($matches[1], '/');
+            } else {
+                $dir = dirname($script);
+                $base = ($dir === '/' || $dir === '\\' || $dir === '.') ? '' : rtrim($dir, '/');
+            }
         }
+        $clean = ltrim($path, '/');
+        if ($clean === 'home') {
+            return $base !== '' ? $base . '/' : '/';
+        }
+        if ($clean === '') {
+            return $base !== '' ? $base : '/';
+        }
+        return ($base !== '' ? $base : '') . '/' . $clean;
     }
-    $clean = ltrim($path, '/');
-    if ($clean === 'home') {
-        return $base !== '' ? $base . '/' : '/';
-    }
-    if ($clean === '') {
-        return $base !== '' ? $base : '/';
-    }
-    return ($base !== '' ? $base : '') . '/' . $clean;
-}
 }
 
 if (!function_exists('url')) {
@@ -150,6 +150,10 @@ function save_node(array $data, ?int $id = null, array $term_ids = [], string $l
     $format = !empty($data['format']) ? $data['format'] : 'filtered_html';
     $auto_slug = isset($data['auto_slug']) ? (int)$data['auto_slug'] : 1;
 
+    $seo_title = !empty($data['seo_title']) ? trim((string)$data['seo_title']) : null;
+    $seo_description = !empty($data['seo_description']) ? trim((string)$data['seo_description']) : null;
+    $seo_focus_keyword = !empty($data['seo_focus_keyword']) ? trim((string)$data['seo_focus_keyword']) : null;
+
     require_once __DIR__ . '/tokens.php';
 
     // 1. Determine base pattern/string to process
@@ -193,58 +197,68 @@ function save_node(array $data, ?int $id = null, array $term_ids = [], string $l
 
     if ($id === null) {
         $stmt = $db->prepare('
-            INSERT INTO nodes (type, title, slug, auto_slug, body, format, keywords, fields_data, uid, status, publish_on, unpublish_on, template)
-            VALUES (:type, :title, :slug, :auto_slug, :body, :format, :keywords, :fields_data, :uid, :status, :publish_on, :unpublish_on, :template)
+            INSERT INTO nodes (type, title, seo_title, seo_description, seo_focus_keyword, slug, auto_slug, body, format, keywords, fields_data, uid, status, publish_on, unpublish_on, template)
+            VALUES (:type, :title, :seo_title, :seo_description, :seo_focus_keyword, :slug, :auto_slug, :body, :format, :keywords, :fields_data, :uid, :status, :publish_on, :unpublish_on, :template)
         ');
         $stmt->execute([
-            'type'         => $data['type'],
-            'title'        => $data['title'],
-            'slug'         => $slug,
-            'auto_slug'    => $auto_slug,
-            'body'         => $data['body'] ?? null,
-            'format'       => $format,
-            'keywords'     => $keywords,
-            'fields_data'  => $fields_json,
-            'uid'          => $data['uid'],
-            'status'       => $data['status'] ?? 'published',
-            'publish_on'   => !empty($data['publish_on']) ? $data['publish_on'] : null,
-            'unpublish_on' => !empty($data['unpublish_on']) ? $data['unpublish_on'] : null,
-            'template'     => $data['template'] ?? null
+            'type'              => $data['type'],
+            'title'             => $data['title'],
+            'seo_title'         => $seo_title,
+            'seo_description'   => $seo_description,
+            'seo_focus_keyword' => $seo_focus_keyword,
+            'slug'              => $slug,
+            'auto_slug'         => $auto_slug,
+            'body'              => $data['body'] ?? null,
+            'format'            => $format,
+            'keywords'          => $keywords,
+            'fields_data'       => $fields_json,
+            'uid'               => $data['uid'],
+            'status'            => $data['status'] ?? 'published',
+            'publish_on'        => !empty($data['publish_on']) ? $data['publish_on'] : null,
+            'unpublish_on'      => !empty($data['unpublish_on']) ? $data['unpublish_on'] : null,
+            'template'          => $data['template'] ?? null
         ]);
         $saved_id = (int)$db->lastInsertId();
     } else {
         $stmt = $db->prepare('
             UPDATE nodes 
-            SET title = :title, slug = :slug, auto_slug = :auto_slug, body = :body, format = :format, 
-                keywords = :keywords, fields_data = :fields_data, status = :status, 
-                publish_on = :publish_on, unpublish_on = :unpublish_on, template = :template
+            SET title = :title, seo_title = :seo_title, seo_description = :seo_description, 
+                seo_focus_keyword = :seo_focus_keyword, slug = :slug, auto_slug = :auto_slug, 
+                body = :body, format = :format, keywords = :keywords, fields_data = :fields_data, 
+                status = :status, publish_on = :publish_on, unpublish_on = :unpublish_on, template = :template
             WHERE id = :id
         ');
         $stmt->execute([
-            'title'        => $data['title'],
-            'slug'         => $slug,
-            'auto_slug'    => $auto_slug,
-            'body'         => $data['body'] ?? null,
-            'format'       => $format,
-            'keywords'     => $keywords,
-            'fields_data'  => $fields_json,
-            'status'       => $data['status'] ?? 'published',
-            'publish_on'   => !empty($data['publish_on']) ? $data['publish_on'] : null,
-            'unpublish_on' => !empty($data['unpublish_on']) ? $data['unpublish_on'] : null,
-            'template'     => $data['template'] ?? null,
-            'id'           => $id
+            'title'             => $data['title'],
+            'seo_title'         => $seo_title,
+            'seo_description'   => $seo_description,
+            'seo_focus_keyword' => $seo_focus_keyword,
+            'slug'              => $slug,
+            'auto_slug'         => $auto_slug,
+            'body'              => $data['body'] ?? null,
+            'format'            => $format,
+            'keywords'          => $keywords,
+            'fields_data'       => $fields_json,
+            'status'            => $data['status'] ?? 'published',
+            'publish_on'        => !empty($data['publish_on']) ? $data['publish_on'] : null,
+            'unpublish_on'      => !empty($data['unpublish_on']) ? $data['unpublish_on'] : null,
+            'template'          => $data['template'] ?? null,
+            'id'                => $id
         ]);
         $saved_id = $id;
     }
 
     // Save snapshot revision
     $rev_stmt = $db->prepare('
-        INSERT INTO node_revisions (node_id, title, body, keywords, fields_data, log_message, uid) 
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO node_revisions (node_id, title, seo_title, seo_description, seo_focus_keyword, body, keywords, fields_data, log_message, uid) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ');
     $rev_stmt->execute([
         $saved_id,
         $data['title'],
+        $seo_title,
+        $seo_description,
+        $seo_focus_keyword,
         $data['body'] ?? '',
         $keywords,
         $fields_json,
@@ -270,7 +284,13 @@ function save_node(array $data, ?int $id = null, array $term_ids = [], string $l
     if (file_exists(__DIR__ . '/rules.php')) {
         require_once __DIR__ . '/rules.php';
         $rule_context = [
-            'node'    => array_merge($data, ['id' => $saved_id, 'slug' => $slug]),
+            'node'    => array_merge($data, [
+                'id'                => $saved_id, 
+                'slug'              => $slug,
+                'seo_title'         => $seo_title,
+                'seo_description'   => $seo_description,
+                'seo_focus_keyword' => $seo_focus_keyword
+            ]),
             'node_id' => $saved_id,
             'user'    => function_exists('current_user') ? current_user() : null
         ];
@@ -286,14 +306,14 @@ function save_node(array $data, ?int $id = null, array $term_ids = [], string $l
         }
     }
     // Synchronize taxonomy terms (if not passed as $term_ids explicitly, check custom fields)
-        if (empty($term_ids) && !empty($data['fields_data'])) {
-            foreach ($data['fields_data'] as $k => $v) {
-                if ((str_contains($k, 'tax') || str_contains($k, 'term')) && !empty($v)) {
-                    $term_ids = is_array($v) ? array_map('intval', $v) : array_map('intval', explode(',', (string)$v));
+    if (empty($term_ids) && !empty($data['fields_data'])) {
+        foreach ($data['fields_data'] as $k => $v) {
+            if ((str_contains($k, 'tax') || str_contains($k, 'term')) && !empty($v)) {
+                $term_ids = is_array($v) ? array_map('intval', $v) : array_map('intval', explode(',', (string)$v));
                 break;
-                }
             }
         }
+    }
 
     return $saved_id;
 }
@@ -349,12 +369,15 @@ function rollback_node_revision(int $revision_id, int $user_id): bool {
 
     if ($current) {
         $log_stmt = $db->prepare('
-            INSERT INTO node_revisions (node_id, title, body, keywords, fields_data, log_message, uid) 
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO node_revisions (node_id, title, seo_title, seo_description, seo_focus_keyword, body, keywords, fields_data, log_message, uid) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ');
         $log_stmt->execute([
             $current['id'],
             $current['title'],
+            $current['seo_title'] ?? null,
+            $current['seo_description'] ?? null,
+            $current['seo_focus_keyword'] ?? null,
             $current['body'],
             $current['keywords'] ?? null,
             $current['fields_data'],
@@ -364,13 +387,21 @@ function rollback_node_revision(int $revision_id, int $user_id): bool {
     }
 
     // Apply the revision
-    $upd = $db->prepare('UPDATE nodes SET title = :t, body = :b, keywords = :k, fields_data = :f WHERE id = :id');
+    $upd = $db->prepare('
+        UPDATE nodes 
+        SET title = :t, seo_title = :st, seo_description = :sd, seo_focus_keyword = :sfk, 
+            body = :b, keywords = :k, fields_data = :f 
+        WHERE id = :id
+    ');
     return $upd->execute([
-        't'  => $rev['title'],
-        'b'  => $rev['body'],
-        'k'  => $rev['keywords'] ?? null,
-        'f'  => $rev['fields_data'],
-        'id' => $rev['node_id']
+        't'   => $rev['title'],
+        'st'  => $rev['seo_title'] ?? null,
+        'sd'  => $rev['seo_description'] ?? null,
+        'sfk' => $rev['seo_focus_keyword'] ?? null,
+        'b'   => $rev['body'],
+        'k'   => $rev['keywords'] ?? null,
+        'f'   => $rev['fields_data'],
+        'id'  => $rev['node_id']
     ]);
 }
 
@@ -562,7 +593,7 @@ function generate_node_slug(string $title, string $type, ?string $custom_slug = 
             break;
         }
 
-        $slug = $base_slug . '-' . $counter;
+        $slug = $clean_base . '-' . $counter;
         $counter++;
     }
 
@@ -1074,6 +1105,7 @@ function replace_similar_content_tags(string $text, ?array $node = null): string
         return render_similar_content($node, $limit);
     }, $text);
 }
+
 /**
  * Extracts the 11-character YouTube video ID from various URL formats
  * (standard watch URLs, short URLs, embeds, shorts, or raw IDs).
