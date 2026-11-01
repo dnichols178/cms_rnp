@@ -26,16 +26,56 @@ $is_article_template = (isset($template_file) && basename($template_file) === 'n
     || (!empty($node['template']) && basename($node['template']) === 'node--article.php')
     || (($node['type'] ?? '') === 'article');
 
+// Resolve SEO Title
+if (!empty($node['seo_title'])) {
+    $seo_meta_title = $node['seo_title'];
+} elseif (!empty($page_title)) {
+    $seo_meta_title = $page_title;
+} elseif (!empty($node['title'])) {
+    $seo_meta_title = $node['title'] . ' | ' . $site_name;
+} else {
+    $seo_meta_title = $site_name . ' | ' . $site_slogan;
+}
+
+// Resolve SEO Description
+if (!empty($node['seo_description'])) {
+    $seo_meta_desc = $node['seo_description'];
+} elseif (!empty($node)) {
+    $seo_meta_desc = get_node_teaser($node, 160);
+} else {
+    $seo_meta_desc = $site_slogan . ' - ' . $sub_tagline;
+}
+
+// Resolve Canonical URL
+$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
+$host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+$current_slug = $node['slug'] ?? ($path ?? '');
+$canonical_url = $protocol . $host . base_path($current_slug === 'home' ? '' : $current_slug);
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?= htmlspecialchars($seo_meta_title) ?></title>
+    <?php if ($seo_meta_desc !== ''): ?>
+        <meta name="description" content="<?= htmlspecialchars($seo_meta_desc) ?>">
+    <?php endif; ?>
     <?php if (!empty($node['keywords'])): ?>
         <meta name="keywords" content="<?= htmlspecialchars($node['keywords']) ?>">
     <?php endif; ?>
-    <title><?= $page_title ?? (htmlspecialchars($node['title'] ?? 'Paducah Site') . ' | ' . htmlspecialchars($site_name)) ?></title>
+    <link rel="canonical" href="<?= htmlspecialchars($canonical_url) ?>">
+
+    <!-- Open Graph / Social Media Meta Tags -->
+    <meta property="og:title" content="<?= htmlspecialchars($seo_meta_title) ?>">
+    <?php if ($seo_meta_desc !== ''): ?>
+        <meta property="og:description" content="<?= htmlspecialchars($seo_meta_desc) ?>">
+    <?php endif; ?>
+    <meta property="og:url" content="<?= htmlspecialchars($canonical_url) ?>">
+    <meta property="og:type" content="<?= $is_article_template ? 'article' : 'website' ?>">
+    <meta property="og:site_name" content="<?= htmlspecialchars($site_name) ?>">
+
     <link rel="stylesheet" href="<?= base_path('assets/css/style.css') ?>">
 
     <?php if ($ga_id !== ''): ?>
@@ -109,9 +149,6 @@ $body_class_attr = !empty($body_classes) ? ' class="' . htmlspecialchars(implode
                     <div class="nav-item <?= $has_children ? 'has-dropdown' : '' ?>">
                         <a href="<?= htmlspecialchars($item['url']) ?>" class="nav-link">
                             <?= htmlspecialchars($item['title']) ?>
-                            <?php if ($has_children): ?>
-                                <span class="dropdown-caret" aria-hidden="true">&#9662;</span>
-                            <?php endif; ?>
                         </a>
                         <?php if ($has_children): ?>
                             <div class="nav-dropdown">
@@ -171,8 +208,6 @@ $body_class_attr = !empty($body_classes) ? ' class="' . htmlspecialchars(implode
         });
     });
     </script>
-
-    
 
     <!-- Hero Banner (Subpages) OR Skydio-Style Video Hero (Home Page) -->
     <?php if ($is_home): ?>
