@@ -284,6 +284,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     $selected_terms = array_values(array_unique($selected_terms));
 
+    // Option A: Automatically compile keywords from selected taxonomy terms
+    $auto_keywords = '';
+    if (!empty($selected_terms)) {
+        $placeholders = implode(',', array_fill(0, count($selected_terms), '?'));
+        $kw_stmt = $db->prepare("SELECT name FROM taxonomy_terms WHERE id IN ({$placeholders})");
+        $kw_stmt->execute($selected_terms);
+        $term_names = $kw_stmt->fetchAll(PDO::FETCH_COLUMN);
+        if (!empty($term_names)) {
+            $auto_keywords = implode(', ', $term_names);
+        }
+    }
+
     $auto_slug = isset($_POST['auto_slug']) ? 1 : 0;
     $slug_input = trim($_POST['slug'] ?? '');
 
@@ -297,7 +309,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'auto_slug'         => $auto_slug,
         'body'              => $_POST['body'] ?? '',
         'format'            => $_POST['format'] ?? 'filtered_html',
-        'keywords'          => trim($_POST['keywords'] ?? ''),
+        'keywords'          => $auto_keywords,
         'fields_data'       => $custom_data,
         'uid'               => current_user()['id'],
         'status'            => in_array($_POST['status'] ?? '', ['draft', 'in_review', 'published', 'archived'], true) ? $_POST['status'] : 'draft',
@@ -558,13 +570,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <?php endif; ?>
                         <?php endforeach; ?>
 
-                        <!-- Search Keywords & Meta Tags -->
-                        <div class="form-row" style="margin-top: 24px; padding-top: 18px; border-top: 1px solid #e2e8f0;">
-                            <label>Search Keywords & Meta Tags</label>
-                            <input type="text" name="keywords" value="<?= htmlspecialchars($node['keywords'] ?? '') ?>" placeholder="e.g. groundwater, remediation, report">
-                            <small style="color: #64748b;">Comma-separated keywords prioritized in internal searches.</small>
-                        </div>
-
                         <!-- Real-Time SEO Integration (Yoast-style Scoring & Snippet Preview) -->
                         <div class="form-row" style="margin-top: 24px; padding-top: 18px; border-top: 1px solid #e2e8f0;">
                             <div style="background: #ffffff; border: 1px solid #cbd5e1; border-top: 4px solid #10b981; border-radius: 6px; padding: 20px;">
@@ -708,7 +713,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         <!-- Taxonomy & Tags (Autocomplete Deluxe Input Widget) -->
                         <div class="sidebar-card">
-                            <h3>Taxonomy & Tags</h3>
+                            <h3>Keywords & Tags</h3>
                             <div class="autocomplete-deluxe-wrapper" id="taxonomy_deluxe_wrapper">
                                 <div class="autocomplete-deluxe-container" id="taxonomy_deluxe_container" onclick="focusTaxonomyInput()">
                                     <div class="autocomplete-deluxe-items" id="taxonomy_deluxe_items">
