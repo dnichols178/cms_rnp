@@ -50,6 +50,7 @@ $revisions = get_node_revisions($node_id);
                             <th>Editor</th>
                             <th>Log Message</th>
                             <th>Saved Title</th>
+                            <th>SEO Keyphrase / Title</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -61,6 +62,16 @@ $revisions = get_node_revisions($node_id);
                             <td><?= htmlspecialchars($rev['username']) ?></td>
                             <td><?= htmlspecialchars($rev['log_message'] ?? 'No notes') ?></td>
                             <td><?= htmlspecialchars($rev['title']) ?></td>
+                            <td style="font-size: 0.85rem;">
+                                <?php if (!empty($rev['seo_focus_keyword'])): ?>
+                                    <strong>[<?= htmlspecialchars($rev['seo_focus_keyword']) ?>]</strong>
+                                <?php endif; ?>
+                                <?php if (!empty($rev['seo_title'])): ?>
+                                    <div><?= htmlspecialchars($rev['seo_title']) ?></div>
+                                <?php elseif (empty($rev['seo_focus_keyword'])): ?>
+                                    <span style="color: #94a3b8;">&mdash;</span>
+                                <?php endif; ?>
+                            </td>
                             <td>
                                 <?php if ($index > 0): ?>
                                     <a href="<?= base_path('admin/revisions.php') ?>?id=<?= $node['id'] ?>&action=rollback&rev_id=<?= $rev['id'] ?>&csrf_token=<?= get_csrf_token() ?>" 
