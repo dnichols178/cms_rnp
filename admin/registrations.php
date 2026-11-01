@@ -341,6 +341,126 @@ if ($action === 'update_state' && isset($_GET['reg_id']) && isset($_GET['state']
     exit;
 }
 
+// 5b. Handle Targeted Broadcast Email to Registrants
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_broadcast_email'])) {
+    require_permission('edit_registrations');
+    validate_csrf();
+
+    $b_form_id     = (int)($_POST['form_id'] ?? 0);
+    $target_status = trim((string)($_POST['target_status'] ?? 'complete'));
+    $subject_raw   = trim((string)($_POST['email_subject'] ?? ''));
+    $body_raw      = trim((string)($_POST['email_body'] ?? ''));
+
+    $target_form = null;
+    if ($b_form_id > 0) {
+        $f_stmt = $db->prepare('SELECT * FROM registration_forms WHERE id = :id LIMIT 1');
+        $f_stmt->execute(['id' => $b_form_id]);
+        $target_form = $f_stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    if (!$target_form) {
+        set_flash('error', 'Registration form could not be found for email broadcast.');
+        header('Location: ' . base_path('admin/registrations.php'));
+        exit;
+    }
+
+    if ($subject_raw === '' || $body_raw === '') {
+        set_flash('error', 'Both Subject and Email Body are required to send a broadcast.');
+        header('Location: ' . base_path('admin/registrations.php?form_id=' . $b_form_id));
+        exit;
+    }
+
+    $b_sql = '
+        SELECT r.*, ts.slot_time
+        FROM registrations r
+        LEFT JOIN registration_time_slots ts ON ts.id = r.slot_id
+        WHERE r.form_id = :fid
+    ';
+    $b_params = ['fid' => $b_form_id];
+
+    if ($target_status === 'complete') {
+        $b_sql .= " AND r.state = 'complete'";
+    } elseif ($target_status === 'waitlist') {
+        $b_sql .= " AND r.state = 'waitlist'";
+    } elseif ($target_status === 'canceled' || $target_status === 'cancelled') {
+        $b_sql .= " AND (r.state = 'canceled' OR r.state = 'cancelled')";
+    }
+
+    $b_sql .= ' ORDER BY r.id ASC';
+    $b_stmt = $db->prepare($b_sql);
+    $b_stmt->execute($b_params);
+    $recipients = $b_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    if (empty($recipients)) {
+        set_flash('error', 'No registrants found matching the selected status filter (' . htmlspecialchars($target_status) . ').');
+        header('Location: ' . base_path('admin/registrations.php?form_id=' . $b_form_id));
+        exit;
+    }
+
+    require_once __DIR__ . '/../includes/mailer.php';
+    if (file_exists(__DIR__ . '/../includes/rules.php')) {
+        require_once __DIR__ . '/../includes/rules.php';
+    }
+
+    $queued_count = 0;
+    $skipped_count = 0;
+    $c_user = current_user();
+
+    foreach ($recipients as $reg_row) {
+        $to_email = trim((string)($reg_row['email'] ?? ''));
+        if (!filter_var($to_email, FILTER_VALIDATE_EMAIL)) {
+            $sub_d = json_decode((string)($reg_row['submission_data'] ?? '{}'), true) ?: [];
+            $alt_email = trim((string)($sub_d['email_address'] ?? $sub_d['reg_email'] ?? ''));
+            if (filter_var($alt_email, FILTER_VALIDATE_EMAIL)) {
+                $to_email = $alt_email;
+            } else {
+                $skipped_count++;
+                continue;
+            }
+        }
+
+        $context = [
+            'registration' => $reg_row,
+            'form'         => $target_form,
+            'node'         => !empty($target_form['node_id']) ? get_node_by_id((int)$target_form['node_id']) : null,
+            'user'         => $c_user,
+        ];
+
+        if (function_exists('rules_replace_tokens')) {
+            $personalized_subject = rules_replace_tokens($subject_raw, $context);
+            $personalized_body    = rules_replace_tokens($body_raw, $context);
+        } else {
+            $personalized_subject = $subject_raw;
+            $personalized_body    = $body_raw;
+        }
+
+        $cta_url = !empty($target_form['slug']) ? ('https://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . base_path($target_form['slug'])) : null;
+        $cta_lbl = !empty($target_form['slug']) ? 'View Event Details' : null;
+
+        $email_html = function_exists('build_frnp_email_html')
+            ? build_frnp_email_html($personalized_subject, $personalized_body, $cta_url, $cta_lbl)
+            : $personalized_body;
+
+        $to_name = !empty($reg_row['name']) ? $reg_row['name'] : null;
+
+        queue_email($to_email, $personalized_subject, $email_html, '', $to_name, 2);
+        $queued_count++;
+    }
+
+    if (function_exists('watchdog')) {
+        watchdog('registrations', "Broadcast email queued for Form #{$b_form_id} ('{$target_form['title']}'). Recipient status: {$target_status}, Queued: {$queued_count}", 'notice');
+    }
+
+    $flash_msg = "Broadcast email successfully queued for {$queued_count} registrant(s) [Filter: " . strtoupper($target_status) . "].";
+    if ($skipped_count > 0) {
+        $flash_msg .= " ({$skipped_count} invalid recipient address(es) skipped).";
+    }
+
+    set_flash('success', $flash_msg);
+    header('Location: ' . base_path('admin/registrations.php?form_id=' . $b_form_id));
+    exit;
+}
+
 // 6. Fetch Active Form Details if selected
 $active_form = null;
 $active_form_slots = [];
@@ -755,6 +875,11 @@ if ($active_form) {
 
         <!-- Right Column: Actions -->
         <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <button type="button" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 6px; padding: 7px 13px; font-size: 0.84rem; font-weight: 600; border-radius: 5px; cursor: pointer;" onclick="openBroadcastModal()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                Email Registrants
+            </button>
+
             <button type="button" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 6px; padding: 7px 13px; font-size: 0.84rem; font-weight: 600; border-radius: 5px; cursor: pointer;" onclick='openFormModal(<?= json_encode($active_form, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>, "<?= $active_form['form_type'] ?>", <?= json_encode($active_form_slots, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>)'>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                 Edit Settings
@@ -856,7 +981,7 @@ if ($active_form) {
 
                     <?php if (($active_form['form_type'] ?? 'general') === 'tour' && !empty($active_form_slots)): ?>
                         <div style="display: flex; gap: 6px; align-items: center;">
-                           
+                            
                             <?php $slot_link = fn($sid) => base_path('admin/registrations.php?form_id=' . $active_form['id'] . ($cur_st !== '' ? '&state=' . $cur_st : '') . ($sid > 0 ? '&slot_id=' . $sid : '')); ?>
                             <a href="<?= $slot_link(0) ?>" class="filter-pill <?= $cur_slot === 0 ? 'active' : '' ?>">All Times</a>
                             <?php foreach ($active_form_slots as $aslot): ?>
@@ -1265,6 +1390,75 @@ if ($active_form) {
         </div>
     </div>
 
+    <!-- 5. MODAL: BROADCAST EMAIL TO REGISTRANTS -->
+    <?php if ($active_form): ?>
+    <div id="emailBroadcastModal" class="modal-overlay">
+        <div class="modal-dialog">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 16px;">
+                <div>
+                    <h3 style="margin: 0; color: #0b2545;">Send Broadcast Email to Registrants</h3>
+                    <div style="font-size: 0.8rem; color: #64748b; margin-top: 2px;">
+                        Event: <strong><?= htmlspecialchars($active_form['title']) ?></strong>
+                    </div>
+                </div>
+                <button type="button" onclick="closeBroadcastModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #64748b;">&times;</button>
+            </div>
+
+            <form method="POST" action="<?= base_path('admin/registrations.php') ?>" onsubmit="prepareBroadcastSubmit(); return confirmBroadcast();">
+                <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
+                <input type="hidden" name="send_broadcast_email" value="1">
+                <input type="hidden" name="form_id" value="<?= (int)$active_form['id'] ?>">
+
+                <div class="form-row" style="margin-bottom: 15px;">
+                    <label>Recipient Target Status *</label>
+                    <select name="target_status" id="modal_target_status" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.9rem;" required>
+                        <option value="complete" selected>Confirmed / Complete Only (<?= (int)($stat['confirmed'] ?? 0) ?> registrants)</option>
+                        <option value="waitlist">Waitlist Only (<?= (int)($stat['waitlist'] ?? 0) ?> registrants)</option>
+                        <option value="canceled">Canceled Only</option>
+                        <option value="all">All Submissions (Confirmed, Waitlist, and Canceled)</option>
+                    </select>
+                    <small style="color: #64748b; font-size: 0.78rem; display: block; margin-top: 4px;">
+                        Select which registrant cohort will receive this email transmission.
+                    </small>
+                </div>
+
+                <div class="form-row" style="margin-bottom: 15px;">
+                    <label>Subject *</label>
+                    <input type="text" name="email_subject" id="modal_email_subject" required style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.9rem;" placeholder="e.g. Important Information Regarding Your Site Tour" value="Notice: <?= htmlspecialchars($active_form['title']) ?>">
+                </div>
+
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; font-size: 0.84rem; font-weight: 600; color: #0b2545; margin-bottom: 6px;">
+                        Insert Tokens (Click any token to append to body):
+                    </label>
+                    <div style="display: flex; flex-wrap: wrap; gap: 6px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; padding: 8px 10px;">
+                        <button type="button" class="btn-secondary" style="font-size: 0.74rem; padding: 2px 7px; font-family: monospace;" onclick="insertEmailToken('[registration:name]')">[registration:name]</button>
+                        <button type="button" class="btn-secondary" style="font-size: 0.74rem; padding: 2px 7px; font-family: monospace;" onclick="insertEmailToken('[registration:email]')">[registration:email]</button>
+                        <button type="button" class="btn-secondary" style="font-size: 0.74rem; padding: 2px 7px; font-family: monospace;" onclick="insertEmailToken('[registration:confirmation_number]')">[registration:confirmation_number]</button>
+                        <button type="button" class="btn-secondary" style="font-size: 0.74rem; padding: 2px 7px; font-family: monospace;" onclick="insertEmailToken('[registration:state]')">[registration:state]</button>
+                        <button type="button" class="btn-secondary" style="font-size: 0.74rem; padding: 2px 7px; font-family: monospace;" onclick="insertEmailToken('[registration:phone]')">[registration:phone]</button>
+                        <button type="button" class="btn-secondary" style="font-size: 0.74rem; padding: 2px 7px; font-family: monospace;" onclick="insertEmailToken('[form:title]')">[form:title]</button>
+                        <button type="button" class="btn-secondary" style="font-size: 0.74rem; padding: 2px 7px; font-family: monospace;" onclick="insertEmailToken('[tour:date_formatted]')">[tour:date_formatted]</button>
+                        <button type="button" class="btn-secondary" style="font-size: 0.74rem; padding: 2px 7px; font-family: monospace;" onclick="insertEmailToken('[tour:time]')">[tour:time]</button>
+                        <button type="button" class="btn-secondary" style="font-size: 0.74rem; padding: 2px 7px; font-family: monospace;" onclick="insertEmailToken('[site:name]')">[site:name]</button>
+                        <button type="button" class="btn-secondary" style="font-size: 0.74rem; padding: 2px 7px; font-family: monospace;" onclick="insertEmailToken('[registration:summary]')">[registration:summary]</button>
+                    </div>
+                </div>
+
+                <div class="form-row" style="margin-bottom: 20px;">
+                    <label>Email Body (WYSIWYG) *</label>
+                    <textarea name="email_body" id="modal_email_body" rows="8"><p>Dear [registration:name],</p><p>We are contacting you with an important update regarding your registration for <strong>[form:title]</strong>.</p><p>Please retain your confirmation number: <strong>[registration:confirmation_number]</strong>.</p><p>If you have any questions or require additional assistance, please feel free to reach out.</p><p>Thank you,<br>[site:name]</p></textarea>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #e2e8f0; padding-top: 14px;">
+                    <button type="button" class="btn-secondary" onclick="closeBroadcastModal()">Cancel</button>
+                    <button type="submit" class="btn-primary" style="background: #0b2545;">Queue Broadcast Email</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <?php endif; ?>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Trumbowyg/2.27.3/trumbowyg.min.js"></script>
 
@@ -1287,8 +1481,64 @@ if ($active_form) {
                     ],
                     autogrow: true
                 });
+
+                if ($('#modal_email_body').length) {
+                    $('#modal_email_body').trumbowyg({
+                        btns: [
+                            ['viewHTML'],
+                            ['undo', 'redo'],
+                            ['formatting'],
+                            ['strong', 'em', 'underline'],
+                            ['link'],
+                            ['unorderedList', 'orderedList'],
+                            ['horizontalRule'],
+                            ['removeformat']
+                        ],
+                        autogrow: false
+                    });
+                }
             }
         });
+
+        function openBroadcastModal() {
+            const modal = document.getElementById('emailBroadcastModal');
+            if (modal) {
+                modal.style.display = 'flex';
+            }
+        }
+
+        function closeBroadcastModal() {
+            const modal = document.getElementById('emailBroadcastModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        function insertEmailToken(token) {
+            if ($.fn.trumbowyg && $('#modal_email_body').data('trumbowyg')) {
+                const currentHtml = $('#modal_email_body').trumbowyg('html');
+                $('#modal_email_body').trumbowyg('html', currentHtml + ' ' + token + ' ');
+            } else {
+                const el = document.getElementById('modal_email_body');
+                if (el) {
+                    const start = el.selectionStart || 0;
+                    const end = el.selectionEnd || 0;
+                    el.value = el.value.substring(0, start) + token + el.value.substring(end);
+                }
+            }
+        }
+
+        function prepareBroadcastSubmit() {
+            if ($.fn.trumbowyg && $('#modal_email_body').data('trumbowyg')) {
+                $('#modal_email_body').val($('#modal_email_body').trumbowyg('html'));
+            }
+        }
+
+        function confirmBroadcast() {
+            const sel = document.getElementById('modal_target_status');
+            const targetText = sel ? sel.options[sel.selectedIndex].text : '';
+            return confirm("Queue email broadcast to the following cohort?\n\nTarget: " + targetText + "\n\nEach recipient will receive a personalized email with dynamic token replacements.");
+        }
 
         function getTourPresetFields() {
             return [
@@ -1541,9 +1791,9 @@ if ($active_form) {
         }
 
         window.onclick = function(e) {
-            ['formModal', 'fieldModal'].forEach(id => {
+            ['formModal', 'fieldModal', 'emailBroadcastModal'].forEach(id => {
                 const modal = document.getElementById(id);
-                if (e.target === modal) modal.style.display = 'none';
+                if (modal && e.target === modal) modal.style.display = 'none';
             });
         };
     </script>
