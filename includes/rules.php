@@ -197,13 +197,14 @@ function rules_execute_action(array $action, array $context, array $rule): void 
     $type = $action['type'] ?? '';
 
     if ($type === 'send_email') {
-        $to      = rules_replace_tokens((string)($action['to'] ?? ''), $context);
-        $to_name = rules_replace_tokens((string)($action['recipient_name'] ?? ''), $context);
-        $subject = rules_replace_tokens((string)($action['subject'] ?? ''), $context);
-        $body    = rules_replace_tokens((string)($action['message'] ?? ''), $context);
+        $to       = rules_replace_tokens((string)($action['to'] ?? ''), $context);
+        $to_name  = rules_replace_tokens((string)($action['recipient_name'] ?? ''), $context);
+        $subject  = rules_replace_tokens((string)($action['subject'] ?? ''), $context);
+        $body     = rules_replace_tokens((string)($action['message'] ?? ''), $context);
+        $template = trim((string)($action['email_template'] ?? 'frnp'));
 
         if (filter_var($to, FILTER_VALIDATE_EMAIL)) {
-            // Optional Call-to-Action button resolution (e.g. from event form or node)
+            // Optional Call-to-Action button resolution
             $cta_url = null;
             $cta_label = null;
             if (!empty($action['cta_url'])) {
@@ -217,18 +218,37 @@ function rules_execute_action(array $action, array $context, array $rule): void 
                 $cta_label = 'View Page';
             }
 
-            // Wrap the HTML body in the system branded email template
-            $email_html = function_exists('build_frnp_email_html')
-                ? build_frnp_email_html($subject, $body, $cta_url, $cta_label)
-                : $body;
+            // Apply selected template layout
+            switch ($template) {
+                case 'generic':
+                    $email_html = function_exists('build_generic_email_html')
+                        ? build_generic_email_html($subject, $body, $cta_url, $cta_label)
+                        : (function_exists('build_frnp_email_html') ? build_frnp_email_html($subject, $body, $cta_url, $cta_label) : $body);
+                    break;
 
-            // Queue with correct parameter alignment: ($recipient, $subject, $html_body, $text_body, $recipient_name, $priority)
+                case 'none':
+                case 'raw':
+                    // Raw HTML as authored in the rule body without a template wrapper
+                    $email_html = $body;
+                    break;
+
+                case 'frnp':
+                default:
+                    $email_html = function_exists('build_frnp_email_html')
+                        ? build_frnp_email_html($subject, $body, $cta_url, $cta_label)
+                        : $body;
+                    break;
+            }
+
+            // Queue email with correct parameters: ($recipient, $subject, $html_body, $text_body, $recipient_name, $priority)
             queue_email($to, $subject, $email_html, '', !empty($to_name) ? $to_name : null, 1);
-            watchdog('rules', "Rule '{$rule['label']}' dispatched email to {$to} [Subject: {$subject}]", 'notice');
+            watchdog('rules', "Rule '{$rule['label']}' dispatched email to {$to} [Subject: {$subject}] [Template: {$template}]", 'notice');
         } else {
             watchdog('rules', "Rule '{$rule['label']}' failed: Invalid recipient address '{$to}'", 'warning');
         }
-    } elseif ($type === 'watchdog') {
+    } 
+
+    elseif ($type === 'watchdog') {
         $msg = rules_replace_tokens((string)($action['message'] ?? ''), $context);
         $sev = $action['severity'] ?? 'notice';
         watchdog('rules_action', $msg, $sev);
