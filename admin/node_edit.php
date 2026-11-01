@@ -288,19 +288,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $slug_input = trim($_POST['slug'] ?? '');
 
     $save_payload = [
-        'type'         => $content_type['type'],
-        'title'        => $title,
-        'slug'         => $slug_input,
-        'auto_slug'    => $auto_slug,
-        'body'         => $_POST['body'] ?? '',
-        'format'       => $_POST['format'] ?? 'filtered_html',
-        'keywords'     => trim($_POST['keywords'] ?? ''),
-        'fields_data'  => $custom_data,
-        'uid'          => current_user()['id'],
-        'status'       => in_array($_POST['status'] ?? '', ['draft', 'in_review', 'published', 'archived'], true) ? $_POST['status'] : 'draft',
-        'publish_on'   => !empty($_POST['publish_on']) ? str_replace('T', ' ', $_POST['publish_on']) : null,
-        'unpublish_on' => !empty($_POST['unpublish_on']) ? str_replace('T', ' ', $_POST['unpublish_on']) : null,
-        'template'     => !empty($_POST['template']) ? trim($_POST['template']) : null
+        'type'              => $content_type['type'],
+        'title'             => $title,
+        'seo_title'         => trim($_POST['seo_title'] ?? ''),
+        'seo_description'   => trim($_POST['seo_description'] ?? ''),
+        'seo_focus_keyword' => trim($_POST['seo_focus_keyword'] ?? ''),
+        'slug'              => $slug_input,
+        'auto_slug'         => $auto_slug,
+        'body'              => $_POST['body'] ?? '',
+        'format'            => $_POST['format'] ?? 'filtered_html',
+        'keywords'          => trim($_POST['keywords'] ?? ''),
+        'fields_data'       => $custom_data,
+        'uid'               => current_user()['id'],
+        'status'            => in_array($_POST['status'] ?? '', ['draft', 'in_review', 'published', 'archived'], true) ? $_POST['status'] : 'draft',
+        'publish_on'        => !empty($_POST['publish_on']) ? str_replace('T', ' ', $_POST['publish_on']) : null,
+        'unpublish_on'      => !empty($_POST['unpublish_on']) ? str_replace('T', ' ', $_POST['unpublish_on']) : null,
+        'template'          => !empty($_POST['template']) ? trim($_POST['template']) : null
     ];
 
     // Save node and retrieve the inserted/updated ID
@@ -341,116 +344,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Trumbowyg/2.27.3/plugins/colors/ui/trumbowyg.colors.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Trumbowyg/2.27.3/plugins/table/ui/trumbowyg.table.min.css">
 
-    <!-- Autocomplete Deluxe Widget Styling -->
-    <style>
-        .autocomplete-deluxe-wrapper {
-            position: relative;
-            width: 100%;
-        }
-        .autocomplete-deluxe-container {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 6px;
-            min-height: 38px;
-            padding: 5px 8px;
-            background: #ffffff;
-            border: 1px solid #cbd5e1;
-            border-radius: 4px;
-            cursor: text;
-            box-sizing: border-box;
-            transition: border-color 0.15s ease, box-shadow 0.15s ease;
-        }
-        .autocomplete-deluxe-container:focus-within {
-            border-color: #0b2545;
-            box-shadow: 0 0 0 2px rgba(11, 37, 69, 0.15);
-        }
-        .autocomplete-deluxe-items {
-            display: contents;
-        }
-        .autocomplete-deluxe-item {
-            display: inline-flex;
-            align-items: center;
-            background: #0b2545;
-            color: #ffffff;
-            font-size: 0.8rem;
-            font-weight: 600;
-            padding: 3px 8px;
-            border-radius: 4px;
-            gap: 6px;
-            line-height: 1.2;
-            user-select: none;
-        }
-        .autocomplete-deluxe-item .item-remove {
-            cursor: pointer;
-            font-size: 1.05rem;
-            line-height: 1;
-            color: #94a3b8;
-            transition: color 0.15s ease;
-        }
-        .autocomplete-deluxe-item .item-remove:hover {
-            color: #fca5a5;
-        }
-        .autocomplete-deluxe-search {
-            flex: 1;
-            min-width: 90px;
-            border: none !important;
-            outline: none !important;
-            padding: 4px 2px !important;
-            font-size: 0.88rem !important;
-            background: transparent !important;
-            box-shadow: none !important;
-            margin: 0 !important;
-            color: #1e293b;
-        }
-        .autocomplete-deluxe-dropdown {
-            position: absolute;
-            top: calc(100% + 3px);
-            left: 0;
-            right: 0;
-            background: #ffffff;
-            border: 1px solid #cbd5e1;
-            border-radius: 4px;
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
-            max-height: 220px;
-            overflow-y: auto;
-            z-index: 1000;
-        }
-        .autocomplete-deluxe-option {
-            padding: 8px 12px;
-            font-size: 0.85rem;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #f1f5f9;
-            transition: background 0.15s ease;
-        }
-        .autocomplete-deluxe-option:last-child {
-            border-bottom: none;
-        }
-        .autocomplete-deluxe-option:hover,
-        .autocomplete-deluxe-option.active {
-            background: #f1f5f9;
-            color: #0b2545;
-        }
-        .autocomplete-deluxe-option .vocab-badge {
-            font-size: 0.72rem;
-            color: #64748b;
-            background: #e2e8f0;
-            padding: 2px 6px;
-            border-radius: 10px;
-        }
-        .autocomplete-deluxe-option.create-new {
-            background: #f8fafc;
-            color: #0b2545;
-        }
-        .autocomplete-deluxe-option.create-new:hover,
-        .autocomplete-deluxe-option.create-new.active {
-            background: #eff6ff;
-            color: #1e40af;
-        }
-    </style>
 </head>
 <body>
     <div class="admin-wrapper">
@@ -607,7 +500,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                                 </a>
                                                             </div>
                                                         </div>
-                                                        <button type="button" class="btn-secondary" style="font-size: 0.75rem; padding: 3px 8px; color: #b91c1c;" onclick="removeUploadedField('${fieldName}')">Remove</button>
+                                                        <button type="button" class="btn-secondary" style="font-size: 0.75rem; padding: 3px 8px; color: #b91c1c;" onclick="removeUploadedField('<?= htmlspecialchars($fname) ?>')">Remove</button>
                                                     </div>
                                                 <?php endif; ?>
                                             </div>
@@ -670,6 +563,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label>Search Keywords & Meta Tags</label>
                             <input type="text" name="keywords" value="<?= htmlspecialchars($node['keywords'] ?? '') ?>" placeholder="e.g. groundwater, remediation, report">
                             <small style="color: #64748b;">Comma-separated keywords prioritized in internal searches.</small>
+                        </div>
+
+                        <!-- Real-Time SEO Integration (Yoast-style Scoring & Snippet Preview) -->
+                        <div class="form-row" style="margin-top: 24px; padding-top: 18px; border-top: 1px solid #e2e8f0;">
+                            <div style="background: #ffffff; border: 1px solid #cbd5e1; border-top: 4px solid #10b981; border-radius: 6px; padding: 20px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+                                    <h3 style="margin: 0; color: #0b2545; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
+                                        Real-Time SEO Integration
+                                    </h3>
+                                    <div id="seo-score-badge" class="badge" style="background: #64748b; color: #ffffff; padding: 5px 12px; font-size: 0.86rem; border-radius: 12px; font-weight: 700;">
+                                        SEO Score: <span id="seo-score-val">--</span>/100
+                                    </div>
+                                </div>
+
+                                <div style="display: grid; grid-template-columns: 1fr 320px; gap: 20px; align-items: start;">
+                                    <div>
+                                        <div class="form-row" style="margin-bottom: 14px;">
+                                            <label style="display: block; font-weight: 600; font-size: 0.86rem; margin-bottom: 4px;">Focus Keyphrase</label>
+                                            <input type="text" name="seo_focus_keyword" id="seo_focus_keyword" value="<?= htmlspecialchars($node['seo_focus_keyword'] ?? '') ?>" placeholder="e.g. environmental remediation" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.9rem;">
+                                            <small style="color: #64748b;">Specify the primary search term you want this content to rank for.</small>
+                                        </div>
+
+                                        <div class="form-row" style="margin-bottom: 14px;">
+                                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                                <label style="font-weight: 600; font-size: 0.86rem; margin: 0;">SEO Title</label>
+                                                <span id="seo-title-count" style="font-size: 0.78rem; color: #64748b;">0 / 60</span>
+                                            </div>
+                                            <input type="text" name="seo_title" id="seo_title" value="<?= htmlspecialchars($node['seo_title'] ?? '') ?>" placeholder="Leave blank to use node title" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.9rem;">
+                                        </div>
+
+                                        <div class="form-row" style="margin-bottom: 0;">
+                                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                                <label style="font-weight: 600; font-size: 0.86rem; margin: 0;">Meta Description</label>
+                                                <span id="seo-desc-count" style="font-size: 0.78rem; color: #64748b;">0 / 155</span>
+                                            </div>
+                                            <textarea name="seo_description" id="seo_description" rows="3" placeholder="Summary of page content for search engines..." style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.9rem; font-family: inherit;"><?= htmlspecialchars($node['seo_description'] ?? '') ?></textarea>
+                                        </div>
+                                    </div>
+
+                                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 14px;">
+                                        <h4 style="margin: 0 0 10px 0; font-size: 0.9rem; color: #0b2545;">Google Search Preview</h4>
+                                        <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px; padding: 10px; margin-bottom: 14px; font-family: Arial, sans-serif;">
+                                            <div id="snippet-url" style="font-size: 0.72rem; color: #202124; margin-bottom: 2px; word-break: break-all;">
+                                                <?= htmlspecialchars(base_path($node['slug'] ?? 'page-url')) ?>
+                                            </div>
+                                            <div id="snippet-title" style="font-size: 1.05rem; color: #1a0dab; line-height: 1.3; margin-bottom: 3px; word-break: break-word;">
+                                                <?= htmlspecialchars(!empty($node['seo_title']) ? $node['seo_title'] : (!empty($node['title']) ? $node['title'] : 'Page Title Preview')) ?>
+                                            </div>
+                                            <div id="snippet-desc" style="font-size: 0.82rem; color: #4d5156; line-height: 1.4; word-break: break-word;">
+                                                <?= htmlspecialchars(!empty($node['seo_description']) ? $node['seo_description'] : 'Enter a meta description to preview snippet text.') ?>
+                                            </div>
+                                        </div>
+
+                                        <h4 style="margin: 0 0 6px 0; font-size: 0.88rem; color: #0b2545;">SEO Analysis & Suggestions</h4>
+                                        <ul id="seo-checks-list" style="margin: 0; padding-left: 16px; font-size: 0.8rem; color: #334155; line-height: 1.45;">
+                                            <li>Set a focus keyphrase and content to run analysis.</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -1030,6 +983,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     textarea.value = textarea.value.substring(0, start) + htmlSnippet + textarea.value.substring(end);
                 }
             }
+            if (typeof updateSeoAnalysis === 'function') {
+                updateSeoAnalysis();
+            }
         }
 
         function toggleMenuFields(isChecked) {
@@ -1166,6 +1122,183 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             drawer.insertBefore(pill, drawer.firstChild);
         }
 
+        /* --- Real-Time SEO Analyzer Engine --- */
+        function updateSeoAnalysis() {
+            const titleInput = document.querySelector('input[name="title"]');
+            const seoTitleInput = document.getElementById('seo_title');
+            const seoDescInput = document.getElementById('seo_description');
+            const seoKeywordInput = document.getElementById('seo_focus_keyword');
+            const slugInput = document.getElementById('slug_custom_input');
+            const previewSlugText = document.getElementById('preview_slug_text');
+
+            const snippetTitle = document.getElementById('snippet-title');
+            const snippetDesc = document.getElementById('snippet-desc');
+            const snippetUrl = document.getElementById('snippet-url');
+            const titleCount = document.getElementById('seo-title-count');
+            const descCount = document.getElementById('seo-desc-count');
+            const scoreVal = document.getElementById('seo-score-val');
+            const scoreBadge = document.getElementById('seo-score-badge');
+            const checksList = document.getElementById('seo-checks-list');
+
+            if (!checksList || !scoreVal) return;
+
+            const primaryTitle = titleInput ? titleInput.value.trim() : '';
+            const customSeoTitle = seoTitleInput ? seoTitleInput.value.trim() : '';
+            const displayTitle = customSeoTitle !== '' ? customSeoTitle : (primaryTitle !== '' ? primaryTitle : 'Page Title Preview');
+            const desc = seoDescInput ? seoDescInput.value.trim() : '';
+            const keyword = seoKeywordInput ? seoKeywordInput.value.trim().toLowerCase() : '';
+
+            let currentSlug = '';
+            const autoSlugCheckbox = document.getElementById('auto_slug');
+            if (autoSlugCheckbox && autoSlugCheckbox.checked && previewSlugText) {
+                currentSlug = previewSlugText.innerText.trim();
+            } else if (slugInput) {
+                currentSlug = slugInput.value.trim();
+            }
+
+            let bodyHtml = '';
+            if (window.jQuery && $('#node_body').data('trumbowyg')) {
+                bodyHtml = $('#node_body').trumbowyg('html') || '';
+            } else {
+                const bodyElem = document.getElementById('node_body');
+                bodyHtml = bodyElem ? bodyElem.value : '';
+            }
+
+            // Update snippet preview
+            if (snippetTitle) snippetTitle.textContent = displayTitle;
+            if (snippetDesc) {
+                snippetDesc.textContent = desc !== '' ? desc : 'Enter a meta description to preview snippet text.';
+            }
+            if (snippetUrl && currentSlug) {
+                snippetUrl.textContent = '/' + currentSlug.replace(/^\/+/, '');
+            }
+
+            // Length counters
+            const tLen = displayTitle.length;
+            const dLen = desc.length;
+
+            if (titleCount) {
+                titleCount.textContent = `${tLen} / 60`;
+                titleCount.style.color = (tLen >= 30 && tLen <= 60) ? '#059669' : (tLen === 0 ? '#64748b' : '#d97706');
+            }
+            if (descCount) {
+                descCount.textContent = `${dLen} / 155`;
+                descCount.style.color = (dLen >= 120 && dLen <= 155) ? '#059669' : (dLen === 0 ? '#64748b' : '#d97706');
+            }
+
+            // Plain text conversion for word count and keyword search
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = bodyHtml;
+            const plainText = (tempDiv.textContent || tempDiv.innerText || '').toLowerCase();
+            const words = plainText.match(/\b\w+\b/g) || [];
+            const wordCount = words.length;
+
+            let score = 100;
+            const checks = [];
+
+            // 1. Focus Keyword Evaluation
+            if (!keyword) {
+                score -= 30;
+                checks.push({ type: 'error', text: 'No focus keyphrase specified.' });
+            } else {
+                // In Title
+                if (displayTitle.toLowerCase().includes(keyword)) {
+                    checks.push({ type: 'success', text: 'Focus keyphrase appears in the SEO title.' });
+                } else {
+                    score -= 15;
+                    checks.push({ type: 'error', text: 'Focus keyphrase does not appear in the SEO title.' });
+                }
+
+                // In Meta Description
+                if (desc.toLowerCase().includes(keyword)) {
+                    checks.push({ type: 'success', text: 'Focus keyphrase appears in the meta description.' });
+                } else {
+                    score -= 10;
+                    checks.push({ type: 'warning', text: 'Focus keyphrase does not appear in the meta description.' });
+                }
+
+                // In URL Slug
+                const sanitizedKwSlug = slugify(keyword);
+                if (currentSlug.toLowerCase().includes(sanitizedKwSlug)) {
+                    checks.push({ type: 'success', text: 'Focus keyphrase appears in the URL alias.' });
+                } else {
+                    score -= 5;
+                    checks.push({ type: 'warning', text: 'Focus keyphrase does not appear in the URL slug.' });
+                }
+
+                // Density in Body
+                if (wordCount > 0) {
+                    const occurrences = (plainText.match(new RegExp(keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length;
+                    const density = ((occurrences / wordCount) * 100).toFixed(1);
+                    if (occurrences === 0) {
+                        score -= 10;
+                        checks.push({ type: 'warning', text: 'Focus keyphrase was not found in the body text.' });
+                    } else if (parseFloat(density) > 3.0) {
+                        score -= 10;
+                        checks.push({ type: 'warning', text: `Keyphrase density is high (${density}%). Consider reducing repetition.` });
+                    } else {
+                        checks.push({ type: 'success', text: `Good keyphrase density (${density}% - ${occurrences} matches).` });
+                    }
+                }
+            }
+
+            // 2. Title length checks
+            if (tLen === 0) {
+                score -= 20;
+                checks.push({ type: 'error', text: 'Title is empty.' });
+            } else if (tLen < 30) {
+                score -= 8;
+                checks.push({ type: 'warning', text: `SEO title is short (${tLen} chars). Optimal is 30-60.` });
+            } else if (tLen > 65) {
+                score -= 8;
+                checks.push({ type: 'warning', text: `SEO title is long (${tLen} chars) and may truncate in search engines.` });
+            } else {
+                checks.push({ type: 'success', text: `Optimal title length (${tLen} chars).` });
+            }
+
+            // 3. Description length checks
+            if (dLen === 0) {
+                score -= 15;
+                checks.push({ type: 'error', text: 'Meta description is missing.' });
+            } else if (dLen < 120) {
+                score -= 6;
+                checks.push({ type: 'warning', text: `Meta description is short (${dLen} chars). Recommended: 120-155.` });
+            } else if (dLen > 160) {
+                score -= 6;
+                checks.push({ type: 'warning', text: `Meta description exceeds recommended limit (${dLen} chars).` });
+            } else {
+                checks.push({ type: 'success', text: `Optimal description length (${dLen} chars).` });
+            }
+
+            // 4. Content length check
+            if (wordCount < 150) {
+                score -= 10;
+                checks.push({ type: 'warning', text: `Body content has only ${wordCount} words. Aim for 300+ words.` });
+            } else {
+                checks.push({ type: 'success', text: `Good content length (${wordCount} words).` });
+            }
+
+            score = Math.max(0, Math.min(100, score));
+            scoreVal.textContent = String(score);
+
+            if (score >= 80) {
+                scoreBadge.style.background = '#10b981';
+            } else if (score >= 50) {
+                scoreBadge.style.background = '#d97706';
+            } else {
+                scoreBadge.style.background = '#dc2626';
+            }
+
+            checksList.innerHTML = '';
+            checks.forEach(item => {
+                const li = document.createElement('li');
+                li.style.color = item.type === 'error' ? '#dc2626' : (item.type === 'warning' ? '#d97706' : '#059669');
+                li.style.marginBottom = '3px';
+                li.textContent = item.text;
+                checksList.appendChild(li);
+            });
+        }
+
         $(document).ready(function() {
             if ($('#node_body').length) {
                 $('#node_body').trumbowyg({
@@ -1188,14 +1321,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     removeformatPasted: true,
                     semantic: true,
                     tagsToRemove: ['script', 'link', 'style']
-                });
+                }).on('tbwchange', updateSeoAnalysis);
             }
 
             const titleElem = document.querySelector('input[name="title"]');
             if (titleElem) {
-                titleElem.addEventListener('input', updateDynamicPreview);
+                titleElem.addEventListener('input', function() {
+                    updateDynamicPreview();
+                    updateSeoAnalysis();
+                });
             }
             updateDynamicPreview();
+
+            // Bind SEO inputs to live analysis
+            ['seo_title', 'seo_description', 'seo_focus_keyword', 'slug_custom_input'].forEach(id => {
+                const elem = document.getElementById(id);
+                if (elem) {
+                    elem.addEventListener('input', updateSeoAnalysis);
+                }
+            });
+
+            const autoSlugEl = document.getElementById('auto_slug');
+            if (autoSlugEl) {
+                autoSlugEl.addEventListener('change', updateSeoAnalysis);
+            }
+
+            updateSeoAnalysis();
 
             // Initialize Autocomplete Deluxe Listeners
             const taxInput = document.getElementById('taxonomy_deluxe_input');
