@@ -59,12 +59,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_rule'])) {
     $actions = [];
 
     if ($action_type === 'send_email') {
-        $actions[] = [
-            'type'           => 'send_email',
-            'to'             => trim($_POST['email_to'] ?? ''),
-            'recipient_name' => trim($_POST['email_to_name'] ?? ''),
-            'subject'        => trim($_POST['email_subject'] ?? ''),
-            'message'        => trim($_POST['email_body'] ?? ''),
+        $actions = [
+            [
+                'type'           => 'send_email',
+                'to'             => trim($_POST['email_to'] ?? ''),
+                'recipient_name' => trim($_POST['email_to_name'] ?? ''),
+                'subject'        => trim($_POST['email_subject'] ?? ''),
+                'email_template' => trim($_POST['email_template'] ?? 'frnp'),
+                'cta_label'      => trim($_POST['email_cta_label'] ?? ''),
+                'cta_url'        => trim($_POST['email_cta_url'] ?? ''),
+                'message'        => trim($_POST['email_body'] ?? ''),
+            ]
         ];
     } elseif ($action_type === 'watchdog') {
         $actions[] = [
@@ -397,9 +402,30 @@ $available_events = rules_get_events();
                         </div>
                     </div>
 
-                    <div class="form-row" style="margin-bottom: 12px;">
-                        <label>Email Subject *</label>
-                        <input type="text" name="email_subject" id="modal_email_subject" value="Registration Confirmation">
+                    <div style="display: grid; grid-template-columns: 1.6fr 1fr; gap: 12px; margin-bottom: 12px;">
+                        <div class="form-row">
+                            <label>Email Subject *</label>
+                            <input type="text" name="email_subject" id="modal_email_subject" value="Registration Confirmation">
+                        </div>
+                        <div class="form-row">
+                            <label>Email Layout Template</label>
+                            <select name="email_template" id="modal_email_template">
+                                <option value="frnp" selected>FRNP Branded Template (Navy Header / Footer)</option>
+                                <option value="generic">Generic Template (Neutral Card Wrapper)</option>
+                                <option value="none">No Template (Raw HTML Body Only)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                        <div class="form-row">
+                            <label>Call-to-Action Button Label (Optional)</label>
+                            <input type="text" name="email_cta_label" id="modal_email_cta_label" placeholder="e.g. View Event Details">
+                        </div>
+                        <div class="form-row">
+                            <label>Call-to-Action Button URL (Optional)</label>
+                            <input type="text" name="email_cta_url" id="modal_email_cta_url" placeholder="e.g. [form:url] or https://...">
+                        </div>
                     </div>
 
                     <div class="form-row" style="margin-bottom: 8px;">
@@ -536,10 +562,16 @@ $available_events = rules_get_events();
                     document.getElementById('modal_email_to').value = act.to || '';
                     document.getElementById('modal_email_to_name').value = act.recipient_name || '';
                     document.getElementById('modal_email_subject').value = act.subject || '';
+                    document.getElementById('modal_email_template').value = act.email_template || 'frnp';
+                    document.getElementById('modal_email_cta_label').value = act.cta_label || '';
+                    document.getElementById('modal_email_cta_url').value = act.cta_url || '';
                     document.getElementById('modal_email_body').value = act.message || '';
                 } else if (actType === 'watchdog') {
                     document.getElementById('modal_log_message').value = act.message || '';
                     document.getElementById('modal_log_severity').value = act.severity || 'notice';
+                    document.getElementById('modal_email_template').value = 'frnp';
+                    document.getElementById('modal_email_cta_label').value = '';
+                    document.getElementById('modal_email_cta_url').value = '';
                 }
             } else {
                 document.getElementById('modal_action_type').value = 'send_email';
@@ -547,6 +579,9 @@ $available_events = rules_get_events();
                 document.getElementById('modal_email_to').value = '[registration:email]';
                 document.getElementById('modal_email_to_name').value = '[registration:name]';
                 document.getElementById('modal_email_subject').value = 'Registration Confirmation';
+                document.getElementById('modal_email_template').value = 'frnp';
+                document.getElementById('modal_email_cta_label').value = '';
+                document.getElementById('modal_email_cta_url').value = '';
                 document.getElementById('modal_email_body').value = '<p>Dear [registration:name],</p>\n<p>Thank you for submitting your registration. Here are your details:</p>\n[registration:summary]';
             }
 
