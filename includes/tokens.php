@@ -17,6 +17,11 @@ function token_replace(string $pattern, array $data = []): string {
     $tokens['[node:type]']       = (string)($node['type'] ?? 'page');
     $tokens['[node:author]']     = (string)($node['author_name'] ?? 'admin');
 
+    // SEO Metadata Tokens
+    $tokens['[node:seo_title]']         = (string)($node['seo_title'] ?? '');
+    $tokens['[node:seo_description]']   = (string)($node['seo_description'] ?? '');
+    $tokens['[node:seo_focus_keyword]'] = (string)($node['seo_focus_keyword'] ?? '');
+
     // Node Timestamps
     $timestamp = !empty($node['created_at']) ? strtotime($node['created_at']) : time();
     $tokens['[node:created:Y]']  = date('Y', $timestamp);
@@ -185,6 +190,11 @@ function get_available_tokens(?string $type_key = null): array {
             '[node:created:Y]'   => 'Created 4-digit year (e.g. 2026)',
             '[node:created:m]'   => 'Created 2-digit month (01-12)',
             '[node:created:d]'   => 'Created 2-digit day (01-31)',
+        ],
+        'SEO Metadata' => [
+            '[node:seo_title]'         => 'Custom SEO meta title',
+            '[node:seo_description]'   => 'Custom SEO meta description',
+            '[node:seo_focus_keyword]' => 'Focus search keyphrase',
         ],
         'Taxonomy Terms' => [
             '[term:name]'        => 'Primary taxonomy category name',
