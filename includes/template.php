@@ -29,7 +29,9 @@ function render_node(array $node): void {
     }
 
     $site_name = get_site_setting('site_name', 'Four Rivers Nuclear Partnership');
-    if (($node['slug'] ?? '') === 'home') {
+    if (!empty($node['seo_title'])) {
+        $page_title = htmlspecialchars($node['seo_title']);
+    } elseif (($node['slug'] ?? '') === 'home') {
         $site_slogan = get_site_setting('site_slogan', 'Paducah Deactivation Project');
         $page_title  = htmlspecialchars($site_name) . ' | ' . htmlspecialchars($site_slogan);
     } else {
