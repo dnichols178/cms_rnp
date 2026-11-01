@@ -146,9 +146,34 @@ function get_node_terms(int $node_id): array {
 function save_node(array $data, ?int $id = null, array $term_ids = [], string $log_msg = ''): int {
     $db = get_db();
     $fields_json = json_encode($data['fields_data'] ?? []);
-    $keywords = !empty($data['keywords']) ? trim($data['keywords']) : null;
     $format = !empty($data['format']) ? $data['format'] : 'filtered_html';
     $auto_slug = isset($data['auto_slug']) ? (int)$data['auto_slug'] : 1;
+
+    // Synchronize taxonomy terms if not passed as $term_ids explicitly
+    if (empty($term_ids) && !empty($data['fields_data'])) {
+        foreach ($data['fields_data'] as $k => $v) {
+            if ((str_contains($k, 'tax') || str_contains($k, 'term')) && !empty($v)) {
+                $term_ids = is_array($v) ? array_map('intval', $v) : array_map('intval', explode(',', (string)$v));
+                break;
+            }
+        }
+    }
+
+    // Auto-generate keywords directly from taxonomy terms (Option A)
+    if (!empty($term_ids)) {
+        $clean_tids = array_filter(array_map('intval', $term_ids));
+        if (!empty($clean_tids)) {
+            $placeholders = implode(',', array_fill(0, count($clean_tids), '?'));
+            $kw_stmt = $db->prepare("SELECT name FROM taxonomy_terms WHERE id IN ({$placeholders}) ORDER BY weight ASC, name ASC");
+            $kw_stmt->execute(array_values($clean_tids));
+            $term_names = $kw_stmt->fetchAll(PDO::FETCH_COLUMN);
+            $keywords = !empty($term_names) ? implode(', ', $term_names) : null;
+        } else {
+            $keywords = !empty($data['keywords']) ? trim((string)$data['keywords']) : null;
+        }
+    } else {
+        $keywords = !empty($data['keywords']) ? trim((string)$data['keywords']) : null;
+    }
 
     $seo_title = !empty($data['seo_title']) ? trim((string)$data['seo_title']) : null;
     $seo_description = !empty($data['seo_description']) ? trim((string)$data['seo_description']) : null;
@@ -289,7 +314,8 @@ function save_node(array $data, ?int $id = null, array $term_ids = [], string $l
                 'slug'              => $slug,
                 'seo_title'         => $seo_title,
                 'seo_description'   => $seo_description,
-                'seo_focus_keyword' => $seo_focus_keyword
+                'seo_focus_keyword' => $seo_focus_keyword,
+                'keywords'          => $keywords
             ]),
             'node_id' => $saved_id,
             'user'    => function_exists('current_user') ? current_user() : null
@@ -303,15 +329,6 @@ function save_node(array $data, ?int $id = null, array $term_ids = [], string $l
 
         if (($data['status'] ?? '') === 'published' || ($data['status'] ?? '') === '1') {
             rules_invoke_event('node_publish', $rule_context);
-        }
-    }
-    // Synchronize taxonomy terms (if not passed as $term_ids explicitly, check custom fields)
-    if (empty($term_ids) && !empty($data['fields_data'])) {
-        foreach ($data['fields_data'] as $k => $v) {
-            if ((str_contains($k, 'tax') || str_contains($k, 'term')) && !empty($v)) {
-                $term_ids = is_array($v) ? array_map('intval', $v) : array_map('intval', explode(',', (string)$v));
-                break;
-            }
         }
     }
 
