@@ -140,9 +140,9 @@ body {
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    padding: 8px;
+    padding: 8px 14px;
     font-weight: 600;
-    font-size: 0.8rem;
+    font-size: 0.92rem;
     text-transform: uppercase;
     text-decoration: none;
     color: var(--frnp-navy);
@@ -287,6 +287,10 @@ body {
     font-size: 1.25rem;
     margin: 22px 0 10px;
     font-weight: 700;
+}
+
+.node-type-registration_form .content-wrapper h3 {
+    margin:0px 0 10px;
 }
 
 .content-wrapper p {
