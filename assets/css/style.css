@@ -31,7 +31,7 @@
 
 html {
     /* Set this to your sticky header height + 15px to 20px padding */
-    scroll-padding-top: 90px;
+    scroll-padding-top: 120px;
     scroll-behavior: smooth;
 }
 
