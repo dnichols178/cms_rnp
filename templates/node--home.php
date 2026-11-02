@@ -14,7 +14,7 @@ $hero_headline   = get_site_setting('home_hero_headline', 'Future in Focus');
 $hero_subhead    = get_site_setting('home_hero_subhead', 'Safe. Compliant. Mission-Driven Environmental Remediation.');
 ?>
 <!-- Full-Viewport Skydio-Style Video Hero -->
-<section class="skydio-hero-wrapper" id="homeHero">
+<section class="video-hero-wrapper" id="homeHero">
     <div class="video-crop-container">
         <video 
             class="hero-video-element"
