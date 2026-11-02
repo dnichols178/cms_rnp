@@ -140,9 +140,9 @@ body {
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    padding: 8px 14px;
+    padding: 8px;
     font-weight: 600;
-    font-size: 0.92rem;
+    font-size: 0.8rem;
     text-transform: uppercase;
     text-decoration: none;
     color: var(--frnp-navy);
