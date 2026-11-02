@@ -24,7 +24,7 @@ function record_step(string $message, bool $success = true): void {
 try {
     $db = get_db();
 
-    // 1. Convert all empty string slugs to NULL in registration_forms to resolve constraint 1062
+    // 1. Convert all empty string slugs to NULL in registration_forms
     $cleaned_slugs = $db->exec("
         UPDATE registration_forms 
         SET slug = NULL 
@@ -264,7 +264,177 @@ try {
         record_step("SEO columns already exist on node_revisions table.");
     }
 
-    // 15. Clear application data cache
+    // 15. Auto-heal Secure Document Transfers: secure_transfers table
+    $has_secure_transfers = (bool)$db->query("
+        SELECT COUNT(*) FROM information_schema.TABLES 
+        WHERE TABLE_SCHEMA = DATABASE() 
+          AND TABLE_NAME = 'secure_transfers'
+    ")->fetchColumn();
+
+    if (!$has_secure_transfers) {
+        $db->exec("
+            CREATE TABLE `secure_transfers` (
+                `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `token` VARCHAR(64) NOT NULL UNIQUE,
+                `title` VARCHAR(255) NOT NULL,
+                `description` TEXT NULL,
+                `original_filename` VARCHAR(255) NOT NULL,
+                `stored_filename` VARCHAR(255) NOT NULL,
+                `file_size` BIGINT UNSIGNED NOT NULL DEFAULT 0,
+                `mime_type` VARCHAR(120) NOT NULL DEFAULT 'application/octet-stream',
+                `file_hash` CHAR(64) NULL,
+                `auth_mode` ENUM('direct', 'otp') NOT NULL DEFAULT 'direct',
+                `max_downloads` INT UNSIGNED NOT NULL DEFAULT 0,
+                `status` ENUM('active', 'expired', 'revoked') NOT NULL DEFAULT 'active',
+                `expires_at` DATETIME NULL,
+                `created_by` INT UNSIGNED NULL,
+                `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                INDEX `idx_st_token` (`token`),
+                INDEX `idx_st_status` (`status`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        ");
+        record_step("Created table secure_transfers.");
+    } else {
+        record_step("Table secure_transfers already exists.");
+        // Add auth_mode column if not present
+        $has_auth_mode = (bool)$db->query("
+            SELECT COUNT(*) FROM information_schema.COLUMNS 
+            WHERE TABLE_SCHEMA = DATABASE() 
+              AND TABLE_NAME = 'secure_transfers' 
+              AND COLUMN_NAME = 'auth_mode'
+        ")->fetchColumn();
+        if (!$has_auth_mode) {
+            $db->exec("ALTER TABLE `secure_transfers` ADD COLUMN `auth_mode` ENUM('direct', 'otp') NOT NULL DEFAULT 'direct' AFTER `file_hash`");
+            record_step("Added auth_mode ENUM('direct','otp') to secure_transfers.");
+        }
+    }
+
+    // 16. Auto-heal: Child Table secure_transfer_recipients (Multi-Recipient Architecture)
+    $has_recipients_table = (bool)$db->query("
+        SELECT COUNT(*) FROM information_schema.TABLES 
+        WHERE TABLE_SCHEMA = DATABASE() 
+          AND TABLE_NAME = 'secure_transfer_recipients'
+    ")->fetchColumn();
+
+    if (!$has_recipients_table) {
+        $db->exec("
+            CREATE TABLE `secure_transfer_recipients` (
+                `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `transfer_id` INT UNSIGNED NOT NULL,
+                `recipient_email` VARCHAR(254) NOT NULL,
+                `status` ENUM('active', 'deactivated') NOT NULL DEFAULT 'active',
+                `download_count` INT UNSIGNED NOT NULL DEFAULT 0,
+                `otp_code` CHAR(4) NULL DEFAULT NULL,
+                `otp_expires_at` DATETIME NULL DEFAULT NULL,
+                `otp_attempts` TINYINT UNSIGNED NOT NULL DEFAULT 0,
+                `deactivated_at` DATETIME NULL DEFAULT NULL,
+                `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                INDEX `idx_str_transfer` (`transfer_id`),
+                INDEX `idx_str_email` (`recipient_email`),
+                CONSTRAINT `fk_str_transfer` FOREIGN KEY (`transfer_id`) REFERENCES `secure_transfers` (`id`) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        ");
+        record_step("Created table secure_transfer_recipients for independent recipient access.");
+
+        // Backward compatibility: Migrate legacy recipient_email rows from secure_transfers if present
+        $has_old_recipient_col = (bool)$db->query("
+            SELECT COUNT(*) FROM information_schema.COLUMNS 
+            WHERE TABLE_SCHEMA = DATABASE() 
+              AND TABLE_NAME = 'secure_transfers' 
+              AND COLUMN_NAME = 'recipient_email'
+        ")->fetchColumn();
+
+        if ($has_old_recipient_col) {
+            $legacy_rows = $db->query("
+                SELECT id, recipient_email, download_count, status, deactivated_at 
+                FROM secure_transfers 
+                WHERE recipient_email IS NOT NULL AND TRIM(recipient_email) != ''
+            ")->fetchAll(PDO::FETCH_ASSOC);
+
+            if (!empty($legacy_rows)) {
+                $ins_recip = $db->prepare("
+                    INSERT INTO secure_transfer_recipients 
+                    (transfer_id, recipient_email, status, download_count, deactivated_at) 
+                    VALUES (?, ?, ?, ?, ?)
+                ");
+                $migrated_recips = 0;
+                foreach ($legacy_rows as $lr) {
+                    $st = ($lr['status'] === 'deactivated') ? 'deactivated' : 'active';
+                    $ins_recip->execute([$lr['id'], strtolower(trim($lr['recipient_email'])), $st, (int)$lr['download_count'], $lr['deactivated_at']]);
+                    $migrated_recips++;
+                }
+                record_step("Migrated {$migrated_recips} legacy recipient(s) into secure_transfer_recipients.");
+            }
+        }
+    } else {
+        record_step("Table secure_transfer_recipients already exists.");
+    }
+
+    // 17. Auto-heal Secure Document Transfers: secure_transfer_logs audit table
+    $has_secure_transfer_logs = (bool)$db->query("
+        SELECT COUNT(*) FROM information_schema.TABLES 
+        WHERE TABLE_SCHEMA = DATABASE() 
+          AND TABLE_NAME = 'secure_transfer_logs'
+    ")->fetchColumn();
+
+    if (!$has_secure_transfer_logs) {
+        $db->exec("
+            CREATE TABLE `secure_transfer_logs` (
+                `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `transfer_id` INT UNSIGNED NOT NULL,
+                `recipient_id` INT UNSIGNED NULL DEFAULT NULL,
+                `event_type` ENUM('page_view', 'auth_failed', 'otp_sent', 'otp_failed', 'auth_success', 'download_started', 'download_completed', 'deactivated_by_user', 'revoked_by_admin') NOT NULL,
+                `email_entered` VARCHAR(254) NULL DEFAULT NULL,
+                `ip_address` VARCHAR(45) NOT NULL,
+                `user_agent` VARCHAR(255) NULL DEFAULT NULL,
+                `bytes_sent` BIGINT UNSIGNED NOT NULL DEFAULT 0,
+                `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                INDEX `idx_stl_transfer` (`transfer_id`),
+                CONSTRAINT `fk_stl_transfer` FOREIGN KEY (`transfer_id`) REFERENCES `secure_transfers` (`id`) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        ");
+        record_step("Created table secure_transfer_logs for forensic audit tracking.");
+    } else {
+        record_step("Table secure_transfer_logs already exists.");
+        // Ensure recipient_id column exists
+        $has_recip_id = (bool)$db->query("
+            SELECT COUNT(*) FROM information_schema.COLUMNS 
+            WHERE TABLE_SCHEMA = DATABASE() 
+              AND TABLE_NAME = 'secure_transfer_logs' 
+              AND COLUMN_NAME = 'recipient_id'
+        ")->fetchColumn();
+        if (!$has_recip_id) {
+            $db->exec("ALTER TABLE `secure_transfer_logs` ADD COLUMN `recipient_id` INT UNSIGNED NULL DEFAULT NULL AFTER `transfer_id`");
+            record_step("Added recipient_id column to secure_transfer_logs.");
+        }
+    }
+
+    // 18. Auto-provision secure vault storage directory and server access locks
+    $vault_dir = __DIR__ . '/vault';
+    if (!is_dir($vault_dir)) {
+        if (@mkdir($vault_dir, 0750, true)) {
+            record_step("Created isolated vault storage directory: /vault");
+        } else {
+            record_step("Failed to create directory /vault. Please verify filesystem permissions.", false);
+        }
+    } else {
+        record_step("Isolated vault storage directory (/vault) already exists.");
+    }
+
+    $htaccess_file = $vault_dir . '/.htaccess';
+    if (!file_exists($htaccess_file) && is_dir($vault_dir)) {
+        @file_put_contents($htaccess_file, "Order Deny,Allow\nDeny from all\n");
+        record_step("Wrote Apache access deny rule: /vault/.htaccess");
+    }
+
+    $webconfig_file = $vault_dir . '/web.config';
+    if (!file_exists($webconfig_file) && is_dir($vault_dir)) {
+        $iis_xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<configuration>\n    <system.webServer>\n        <authorization>\n            <deny users=\"*\" />\n        </authorization>\n    </system.webServer>\n</configuration>\n";
+        @file_put_contents($webconfig_file, $iis_xml);
+        record_step("Wrote IIS access deny rule: /vault/web.config");
+    }
+
+    // 19. Clear application data cache
     if (file_exists(__DIR__ . '/includes/cache.php')) {
         require_once __DIR__ . '/includes/cache.php';
         cache_clear();
@@ -280,10 +450,10 @@ if (!$is_cli): ?>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Registration Schema Fix - FRNP CMS</title>
+    <title>Database Schema & Vault Provisioning - FRNP CMS</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f8fafc; color: #1e293b; padding: 40px; }
-        .card { max-width: 720px; margin: 0 auto; background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 25px 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .card { max-width: 760px; margin: 0 auto; background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 25px 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
         h2 { color: #0b2545; margin-top: 0; }
         .log { background: #0f172a; color: #38bdf8; padding: 15px; border-radius: 4px; font-family: monospace; font-size: 0.88rem; line-height: 1.6; max-height: 480px; overflow-y: auto; }
         .success { color: #10b981; }
@@ -293,7 +463,7 @@ if (!$is_cli): ?>
 </head>
 <body>
     <div class="card">
-        <h2>Registration Database Schema Patch & Tour Auto-Heal</h2>
+        <h2>Database Schema Migration & Vault Provisioning</h2>
         <div class="log">
             <?php foreach ($log as $line): ?>
                 <div class="<?= str_starts_with($line, '[PASS]') ? 'success' : 'fail' ?>"><?= htmlspecialchars($line) ?></div>
@@ -302,7 +472,7 @@ if (!$is_cli): ?>
         <p style="margin-top: 20px; font-size: 0.9rem; color: #64748b;">
             Delete this script from your web root after execution completes.
         </p>
-        <a href="<?= function_exists('base_path') ? base_path('admin/registrations.php') : '/admin/registrations.php' ?>" class="btn">&laquo; Return to Registrations Admin</a>
+        <a href="<?= function_exists('base_path') ? base_path('admin/secure_transfers.php') : '/admin/secure_transfers.php' ?>" class="btn">&laquo; Go to Secure Transfers Admin</a>
     </div>
 </body>
 </html>
