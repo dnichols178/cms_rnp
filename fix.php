@@ -21,6 +21,18 @@ function record_step(string $message, bool $success = true): void {
     }
 }
 
+function column_exists(PDO $db, string $table, string $column): bool {
+    $stmt = $db->prepare("
+        SELECT COUNT(*) 
+        FROM information_schema.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+          AND TABLE_NAME = ? 
+          AND COLUMN_NAME = ?
+    ");
+    $stmt->execute([$table, $column]);
+    return (bool)$stmt->fetchColumn();
+}
+
 try {
     $db = get_db();
 
@@ -39,33 +51,46 @@ try {
     ");
     record_step("Modified registration_forms.slug to VARCHAR(255) NULL DEFAULT NULL.");
 
-    // 3. Resolve error 1364: Permit NULL values and set DEFAULT NULL for registrations.node_id
-    $db->exec("
-        ALTER TABLE registrations 
-        MODIFY COLUMN node_id INT UNSIGNED NULL DEFAULT NULL
-    ");
-    record_step("Modified registrations.node_id to INT UNSIGNED NULL DEFAULT NULL.");
+    // 3. Resolve Error 1364: Permit NULL values and set DEFAULT NULL for registration_forms.node_id
+    if (column_exists($db, 'registration_forms', 'node_id')) {
+        $db->exec("
+            ALTER TABLE registration_forms 
+            MODIFY COLUMN node_id INT UNSIGNED NULL DEFAULT NULL
+        ");
+        record_step("Modified registration_forms.node_id to INT UNSIGNED NULL DEFAULT NULL.");
+    } else {
+        record_step("Column node_id does not exist on registration_forms (skipped).");
+    }
 
-    // 4. Harden other optional attendee columns against MySQL strict mode
-    $db->exec("
-        ALTER TABLE registrations 
-        MODIFY COLUMN user_id INT UNSIGNED NULL DEFAULT NULL,
-        MODIFY COLUMN name VARCHAR(120) NULL DEFAULT NULL,
-        MODIFY COLUMN phone VARCHAR(30) NULL DEFAULT NULL,
-        MODIFY COLUMN organization VARCHAR(150) NULL DEFAULT NULL,
-        MODIFY COLUMN submission_data JSON NULL DEFAULT NULL
-    ");
-    record_step("Hardened registrations optional columns (user_id, name, phone, organization, submission_data) with NULL DEFAULT NULL.");
+    // Defensive check: If registrations table actually has a legacy node_id column, modify it safely
+    if (column_exists($db, 'registrations', 'node_id')) {
+        $db->exec("
+            ALTER TABLE registrations 
+            MODIFY COLUMN node_id INT UNSIGNED NULL DEFAULT NULL
+        ");
+        record_step("Modified legacy registrations.node_id to INT UNSIGNED NULL DEFAULT NULL.");
+    }
+
+    // 4. Harden attendee columns against MySQL strict mode defensively
+    $optional_columns = [
+        'user_id'         => 'INT UNSIGNED NULL DEFAULT NULL',
+        'name'            => 'VARCHAR(120) NULL DEFAULT NULL',
+        'phone'           => 'VARCHAR(30) NULL DEFAULT NULL',
+        'organization'    => 'VARCHAR(150) NULL DEFAULT NULL',
+        'submission_data' => 'LONGTEXT NULL DEFAULT NULL' // Safe across MySQL 5.5 through 8.x
+    ];
+
+    foreach ($optional_columns as $col => $definition) {
+        if (column_exists($db, 'registrations', $col)) {
+            $db->exec("ALTER TABLE registrations MODIFY COLUMN `{$col}` {$definition}");
+            record_step("Hardened registrations.{$col} ({$definition}).");
+        } else {
+            record_step("Column registrations.{$col} not present (skipped).");
+        }
+    }
 
     // 5. Auto-heal registration_forms: Add unique_email column if missing
-    $has_unique_email = (bool)$db->query("
-        SELECT COUNT(*) FROM information_schema.COLUMNS 
-        WHERE TABLE_SCHEMA = DATABASE() 
-          AND TABLE_NAME = 'registration_forms' 
-          AND COLUMN_NAME = 'unique_email'
-    ")->fetchColumn();
-
-    if (!$has_unique_email) {
+    if (!column_exists($db, 'registration_forms', 'unique_email')) {
         $db->exec("
             ALTER TABLE registration_forms 
             ADD COLUMN unique_email TINYINT(1) NOT NULL DEFAULT 0 AFTER allow_waitlist
@@ -76,14 +101,7 @@ try {
     }
 
     // 6. Auto-heal registration_forms: Add form_type ENUM('general', 'tour') if missing
-    $has_form_type = (bool)$db->query("
-        SELECT COUNT(*) FROM information_schema.COLUMNS 
-        WHERE TABLE_SCHEMA = DATABASE() 
-          AND TABLE_NAME = 'registration_forms' 
-          AND COLUMN_NAME = 'form_type'
-    ")->fetchColumn();
-
-    if (!$has_form_type) {
+    if (!column_exists($db, 'registration_forms', 'form_type')) {
         $db->exec("
             ALTER TABLE registration_forms 
             ADD COLUMN form_type ENUM('general', 'tour') NOT NULL DEFAULT 'general' AFTER host_type
@@ -94,14 +112,7 @@ try {
     }
 
     // 7. Auto-heal registration_forms: Add tour_date column if missing
-    $has_tour_date = (bool)$db->query("
-        SELECT COUNT(*) FROM information_schema.COLUMNS 
-        WHERE TABLE_SCHEMA = DATABASE() 
-          AND TABLE_NAME = 'registration_forms' 
-          AND COLUMN_NAME = 'tour_date'
-    ")->fetchColumn();
-
-    if (!$has_tour_date) {
+    if (!column_exists($db, 'registration_forms', 'tour_date')) {
         $db->exec("
             ALTER TABLE registration_forms 
             ADD COLUMN tour_date DATE NULL DEFAULT NULL AFTER close_date
@@ -112,14 +123,7 @@ try {
     }
 
     // 8. Auto-heal registration_forms: Add tour_time column if missing
-    $has_tour_time = (bool)$db->query("
-        SELECT COUNT(*) FROM information_schema.COLUMNS 
-        WHERE TABLE_SCHEMA = DATABASE() 
-          AND TABLE_NAME = 'registration_forms' 
-          AND COLUMN_NAME = 'tour_time'
-    ")->fetchColumn();
-
-    if (!$has_tour_time) {
+    if (!column_exists($db, 'registration_forms', 'tour_time')) {
         $db->exec("
             ALTER TABLE registration_forms 
             ADD COLUMN tour_time VARCHAR(60) NULL DEFAULT NULL AFTER tour_date
@@ -175,14 +179,7 @@ try {
     }
 
     // 11. Auto-heal registrations: Add slot_id column if missing
-    $has_slot_id = (bool)$db->query("
-        SELECT COUNT(*) FROM information_schema.COLUMNS 
-        WHERE TABLE_SCHEMA = DATABASE() 
-          AND TABLE_NAME = 'registrations' 
-          AND COLUMN_NAME = 'slot_id'
-    ")->fetchColumn();
-
-    if (!$has_slot_id) {
+    if (!column_exists($db, 'registrations', 'slot_id')) {
         $db->exec("
             ALTER TABLE registrations 
             ADD COLUMN slot_id INT UNSIGNED NULL DEFAULT NULL AFTER form_id,
@@ -225,14 +222,7 @@ try {
     }
 
     // 13. Auto-heal nodes: Add SEO metadata columns if missing
-    $has_node_seo_title = (bool)$db->query("
-        SELECT COUNT(*) FROM information_schema.COLUMNS 
-        WHERE TABLE_SCHEMA = DATABASE() 
-          AND TABLE_NAME = 'nodes' 
-          AND COLUMN_NAME = 'seo_title'
-    ")->fetchColumn();
-
-    if (!$has_node_seo_title) {
+    if (!column_exists($db, 'nodes', 'seo_title')) {
         $db->exec("
             ALTER TABLE `nodes` 
             ADD COLUMN `seo_title` VARCHAR(255) NULL DEFAULT NULL AFTER `title`,
@@ -245,14 +235,7 @@ try {
     }
 
     // 14. Auto-heal node_revisions: Add SEO metadata columns if missing
-    $has_rev_seo_title = (bool)$db->query("
-        SELECT COUNT(*) FROM information_schema.COLUMNS 
-        WHERE TABLE_SCHEMA = DATABASE() 
-          AND TABLE_NAME = 'node_revisions' 
-          AND COLUMN_NAME = 'seo_title'
-    ")->fetchColumn();
-
-    if (!$has_rev_seo_title) {
+    if (!column_exists($db, 'node_revisions', 'seo_title')) {
         $db->exec("
             ALTER TABLE `node_revisions` 
             ADD COLUMN `seo_title` VARCHAR(255) NULL DEFAULT NULL AFTER `title`,
@@ -296,20 +279,13 @@ try {
         record_step("Created table secure_transfers.");
     } else {
         record_step("Table secure_transfers already exists.");
-        // Add auth_mode column if not present
-        $has_auth_mode = (bool)$db->query("
-            SELECT COUNT(*) FROM information_schema.COLUMNS 
-            WHERE TABLE_SCHEMA = DATABASE() 
-              AND TABLE_NAME = 'secure_transfers' 
-              AND COLUMN_NAME = 'auth_mode'
-        ")->fetchColumn();
-        if (!$has_auth_mode) {
+        if (!column_exists($db, 'secure_transfers', 'auth_mode')) {
             $db->exec("ALTER TABLE `secure_transfers` ADD COLUMN `auth_mode` ENUM('direct', 'otp') NOT NULL DEFAULT 'direct' AFTER `file_hash`");
             record_step("Added auth_mode ENUM('direct','otp') to secure_transfers.");
         }
     }
 
-    // 16. Auto-heal: Child Table secure_transfer_recipients (Multi-Recipient Architecture)
+    // 16. Auto-heal: Child Table secure_transfer_recipients
     $has_recipients_table = (bool)$db->query("
         SELECT COUNT(*) FROM information_schema.TABLES 
         WHERE TABLE_SCHEMA = DATABASE() 
@@ -336,15 +312,7 @@ try {
         ");
         record_step("Created table secure_transfer_recipients for independent recipient access.");
 
-        // Backward compatibility: Migrate legacy recipient_email rows from secure_transfers if present
-        $has_old_recipient_col = (bool)$db->query("
-            SELECT COUNT(*) FROM information_schema.COLUMNS 
-            WHERE TABLE_SCHEMA = DATABASE() 
-              AND TABLE_NAME = 'secure_transfers' 
-              AND COLUMN_NAME = 'recipient_email'
-        ")->fetchColumn();
-
-        if ($has_old_recipient_col) {
+        if (column_exists($db, 'secure_transfers', 'recipient_email')) {
             $legacy_rows = $db->query("
                 SELECT id, recipient_email, download_count, status, deactivated_at 
                 FROM secure_transfers 
@@ -396,14 +364,7 @@ try {
         record_step("Created table secure_transfer_logs for forensic audit tracking.");
     } else {
         record_step("Table secure_transfer_logs already exists.");
-        // Ensure recipient_id column exists
-        $has_recip_id = (bool)$db->query("
-            SELECT COUNT(*) FROM information_schema.COLUMNS 
-            WHERE TABLE_SCHEMA = DATABASE() 
-              AND TABLE_NAME = 'secure_transfer_logs' 
-              AND COLUMN_NAME = 'recipient_id'
-        ")->fetchColumn();
-        if (!$has_recip_id) {
+        if (!column_exists($db, 'secure_transfer_logs', 'recipient_id')) {
             $db->exec("ALTER TABLE `secure_transfer_logs` ADD COLUMN `recipient_id` INT UNSIGNED NULL DEFAULT NULL AFTER `transfer_id`");
             record_step("Added recipient_id column to secure_transfer_logs.");
         }
