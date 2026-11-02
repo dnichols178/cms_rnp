@@ -798,9 +798,9 @@ body {
 }
 
 /* ==========================================================================
-   7. Skydio-Style Full-Viewport Video Hero (Home Page)
+   7. Full-Viewport Video Hero (Home Page)
    ========================================================================== */
-.skydio-hero-wrapper {
+.video-hero-wrapper {
     position: relative;
     width: 100%;
     height: var(--hero-viewport-height, calc(100vh - 120px));
