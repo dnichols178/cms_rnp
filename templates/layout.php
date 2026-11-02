@@ -213,7 +213,7 @@ $body_class_attr = !empty($body_classes) ? ' class="' . htmlspecialchars(implode
         <?php if (file_exists(__DIR__ . '/node--home.php')): ?>
             <?php include __DIR__ . '/node--home.php'; ?>
         <?php else: ?>
-            <section class="skydio-hero-wrapper" id="homeHero">
+            <section class="video-hero-wrapper" id="homeHero">
                 <?php
 // Physical filesystem paths
 $webp_fs_path = __DIR__ . '/../assets/img/hero-poster.webp';
