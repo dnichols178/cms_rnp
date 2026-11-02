@@ -120,6 +120,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_rule'])) {
 
 $all_rules = rules_get_all_rules();
 $available_events = rules_get_events();
+
+// =========================================================================
+// 4. Introspect Dynamic Custom Registration & Node Fields for Palette
+// =========================================================================
+$custom_reg_fields = [];
+try {
+    $form_schemas = $db->query("SELECT fields_schema FROM registration_forms WHERE fields_schema IS NOT NULL AND fields_schema != ''")->fetchAll(PDO::FETCH_COLUMN);
+    foreach ($form_schemas as $schema_json) {
+        $schema = json_decode((string)$schema_json, true) ?: [];
+        foreach ($schema as $f) {
+            $name = trim($f['name'] ?? '');
+            if ($name !== '' && !in_array($name, ['name', 'email', 'phone', 'dl_state', 'tour_date', 'tour_time', 'slots'], true)) {
+                $custom_reg_fields[$name] = $f['label'] ?? ucwords(str_replace(['_', '-'], ' ', $name));
+            }
+        }
+    }
+} catch (\Throwable $e) {}
+
+$custom_node_fields = [];
+try {
+    $ct_schemas = $db->query("SELECT type, name, fields_schema FROM content_types WHERE fields_schema IS NOT NULL AND fields_schema != ''")->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($ct_schemas as $ct) {
+        $schema = json_decode((string)($ct['fields_schema'] ?? '[]'), true) ?: [];
+        $ct_name = $ct['name'] ?? $ct['type'];
+        foreach ($schema as $f) {
+            $name = trim($f['name'] ?? '');
+            if ($name !== '' && !in_array($name, ['title', 'body', 'type', 'slug', 'status'], true)) {
+                $custom_node_fields[$name] = [
+                    'label' => $f['label'] ?? ucwords(str_replace(['_', '-'], ' ', $name)),
+                    'type'  => $ct_name
+                ];
+            }
+        }
+    }
+} catch (\Throwable $e) {}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -141,6 +176,13 @@ $available_events = rules_get_events();
             text-transform: uppercase;
             letter-spacing: 0.5px;
             margin-bottom: 6px;
+        }
+        .token-sub-header {
+            font-size: 0.72rem;
+            color: #64748b;
+            font-weight: 700;
+            margin-top: 6px;
+            margin-bottom: 3px;
         }
         .token-pill {
             display: inline-block;
@@ -438,7 +480,7 @@ $available_events = rules_get_events();
                         <div style="font-size: 0.82rem; font-weight: 700; color: #0b2545; margin-bottom: 8px;">Available Replacement Tokens (Click to insert):</div>
                         
                         <!-- Registration Tokens -->
-                        <div id="token_sec_registration" style="margin-bottom: 8px;">
+                        <div id="token_sec_registration" style="margin-bottom: 10px;">
                             <div class="token-group-title" style="color: #0369a1;">Registration Tokens:</div>
                             <span class="token-pill token-pill-reg" onclick="insertToken('[registration:name]')">[registration:name]</span>
                             <span class="token-pill token-pill-reg" onclick="insertToken('[registration:email]')">[registration:email]</span>
@@ -447,19 +489,30 @@ $available_events = rules_get_events();
                             <span class="token-pill token-pill-reg" onclick="insertToken('[registration:summary]')">[registration:summary]</span>
                             <span class="token-pill token-pill-reg" onclick="insertToken('[form:title]')">[form:title]</span>
                             <span class="token-pill token-pill-reg" onclick="insertToken('[form:url]')">[form:url]</span>
+
+                            <!-- Dynamic Custom Registration Fields -->
+                            <?php if (!empty($custom_reg_fields)): ?>
+                                <div class="token-sub-header">Custom Form Fields:</div>
+                                <?php foreach ($custom_reg_fields as $f_key => $f_label): ?>
+                                    <span class="token-pill token-pill-reg" onclick="insertToken('[registration:<?= htmlspecialchars($f_key) ?>]')" title="<?= htmlspecialchars((string)$f_label) ?>">
+                                        [registration:<?= htmlspecialchars($f_key) ?>]
+                                    </span>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                         </div>
 
                         <!-- Tour Specific Tokens -->
-                        <div id="token_sec_tour" style="margin-bottom: 8px;">
+                        <div id="token_sec_tour" style="margin-bottom: 10px;">
                             <div class="token-group-title" style="color: #92400e;">Tour Specific Tokens:</div>
                             <span class="token-pill token-pill-tour" onclick="insertToken('[tour:date]')">[tour:date]</span>
                             <span class="token-pill token-pill-tour" onclick="insertToken('[tour:date_formatted]')">[tour:date_formatted]</span>
                             <span class="token-pill token-pill-tour" onclick="insertToken('[tour:time]')">[tour:time]</span>
+                            <span class="token-pill token-pill-tour" onclick="insertToken('[tour:all_times]')">[tour:all_times]</span>
                             <span class="token-pill token-pill-tour" onclick="insertToken('[registration:dl_state]')">[registration:dl_state]</span>
                         </div>
 
                         <!-- Node Tokens -->
-                        <div id="token_sec_node" style="margin-bottom: 8px;">
+                        <div id="token_sec_node" style="margin-bottom: 10px;">
                             <div class="token-group-title" style="color: #166534;">Content (Node) Tokens:</div>
                             <span class="token-pill token-pill-node" onclick="insertToken('[node:id]')">[node:id]</span>
                             <span class="token-pill token-pill-node" onclick="insertToken('[node:title]')">[node:title]</span>
@@ -468,10 +521,20 @@ $available_events = rules_get_events();
                             <span class="token-pill token-pill-node" onclick="insertToken('[node:author]')">[node:author]</span>
                             <span class="token-pill token-pill-node" onclick="insertToken('[node:created]')">[node:created]</span>
                             <span class="token-pill token-pill-node" onclick="insertToken('[node:summary]')">[node:summary]</span>
+
+                            <!-- Dynamic Custom Node Fields -->
+                            <?php if (!empty($custom_node_fields)): ?>
+                                <div class="token-sub-header">Custom Content Fields:</div>
+                                <?php foreach ($custom_node_fields as $f_key => $f_info): ?>
+                                    <span class="token-pill token-pill-node" onclick="insertToken('[node:<?= htmlspecialchars($f_key) ?>]')" title="<?= htmlspecialchars($f_info['label'] . ' [' . $f_info['type'] . ']') ?>">
+                                        [node:<?= htmlspecialchars($f_key) ?>]
+                                    </span>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                         </div>
 
                         <!-- User Tokens -->
-                        <div id="token_sec_user" style="margin-bottom: 8px;">
+                        <div id="token_sec_user" style="margin-bottom: 10px;">
                             <div class="token-group-title" style="color: #6b21a8;">User Account Tokens:</div>
                             <span class="token-pill token-pill-user" onclick="insertToken('[user:id]')">[user:id]</span>
                             <span class="token-pill token-pill-user" onclick="insertToken('[user:name]')">[user:name]</span>
