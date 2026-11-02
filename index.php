@@ -391,6 +391,13 @@ if ($view_page && ($view_page['display_type'] ?? '') === 'page') {
     exit;
 }
 
+// 7.5 transfer route
+// Secure Document Transfers Route (/transfer/[token])
+if (str_starts_with($path, 'transfer/')) {
+    require __DIR__ . '/transfer.php';
+    exit;
+}
+
 // 8. Individual Node Route
 $can_view_drafts = user_has_permission('create_content');
 $node = get_node_by_slug($path, $can_view_drafts);
