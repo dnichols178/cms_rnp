@@ -5,6 +5,9 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/tokens.php';
 require_once __DIR__ . '/filters.php';
 
+// Place near the top of config/database.php or includes/content.php
+date_default_timezone_set('America/Chicago');
+
 if (!function_exists('base_path')) {
     /**
      * Resolves the dynamic web root path of the CMS instance.
