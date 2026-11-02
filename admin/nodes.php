@@ -313,7 +313,7 @@ $statuses = [
                                     </td>
                                     <td>
                                         <?php if (empty($n['seo_focus_keyword'])): ?>
-                                            <span class="badge-status" style="background:#64748b; color:#fff;" title="No focus keyphrase set">Not Set</span>
+                                            <span class="badge-status" style="background:#64748b; color:#fff;" title="No focus keyphrase set">N/A</span>
                                         <?php else: ?>
                                             <?php
                                                 $seo_score = 0;
