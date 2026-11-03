@@ -376,7 +376,7 @@ foreach ($all_tours as $t) {
                         <p style="margin: 0; line-height: 1.5;"><?= $interest_msg ?></p>
                     </div>
                 <?php else: ?>
-                    <div class="tour-interest-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); max-width: 600px;">
+                    <div class="tour-interest-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
                         <h3 style="margin-top: 0; margin-bottom: 6px; color: var(--frnp-navy, #0b2545); font-size: 1.2rem;">
                             Get Notified When Tours Open
                         </h3>
