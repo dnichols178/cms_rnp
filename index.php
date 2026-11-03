@@ -17,6 +17,15 @@ if ($path === '' || $path === 'index.php') {
     }
 }
 
+// Resolve standalone root scripts cleanly without .php extension (e.g., /comments, /transfers)
+$clean_path = trim($path ?? parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH), '/');
+$root_script = basename($clean_path);
+
+if (!empty($root_script) && file_exists(__DIR__ . '/' . $root_script . '.php')) {
+    require __DIR__ . '/' . $root_script . '.php';
+    exit;
+}
+
 // Canonical 301 redirect: strip /home from URL if explicitly requested
 if ($path === 'home') {
     $req_uri_path = (string)parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
