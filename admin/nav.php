@@ -124,6 +124,13 @@ $nav_groups = [
             'icon'       => '<path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"/>'
         ],
         [
+            'title'      => 'Comments',
+            'url'        => base_path('admin/public_comments.php'),
+            'file'       => 'public_comments.php',
+            'permission' => 'administer_site',
+            'icon'       => '<path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a.75.75 0 01-.84-.84c.106-.69.282-1.353.519-1.98C3.155 16.59 2.25 14.417 2.25 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z"/>'
+        ],
+        [
             'title'      => 'Real-Time Stats',
             'url'        => base_path('admin/analytics.php'),
             'file'       => 'analytics.php',
@@ -145,6 +152,13 @@ $nav_groups = [
             'file'       => 'users.php',
             'permission' => 'administer_users',
             'icon'       => '<path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/>'
+        ],
+        [
+            'title'      => 'Roles',
+            'url'        => base_path('admin/roles.php'),
+            'file'       => 'roles.php',
+            'permission' => 'manage_users',
+            'icon'       => '<path stroke-linecap="round" stroke-linejoin="round" d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15A2.25 2.25 0 002.25 6.75v10.5A2.25 2.25 0 004.5 19.5zm6-10.125a1.875 1.875 0 11-3.75 0 1.875 1.875 0 013.75 0zm1.294 6.336a6.721 6.721 0 01-3.17.789 6.721 6.721 0 01-3.168-.789 3.376 3.376 0 016.338 0z"/>'
         ],
         [
             'title'      => 'Permissions Matrix',
