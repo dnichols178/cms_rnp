@@ -144,7 +144,7 @@ $submissions = $pdo->query("SELECT * FROM public_comments ORDER BY created_at DE
             </div>
             <div class="admin-actions">
                 <a href="?action=export_csv" class="btn btn-success">⬇ Export Docket (CSV)</a>
-                <a href="<?= base_path() ?>comments.php" target="_blank" class="btn btn-secondary">Open Public Form ↗</a>
+                <a href="<?= base_path() ?>/comments.php" target="_blank" class="btn btn-secondary">Open Public Form ↗</a>
             </div>
         </div>
 
@@ -217,7 +217,7 @@ $submissions = $pdo->query("SELECT * FROM public_comments ORDER BY created_at DE
                                     <strong><?= htmlspecialchars($profile_comment['full_name']) ?></strong> (<?= htmlspecialchars($profile_comment['email']) ?>)
                                 </span>
                             </div>
-                            <a href="<?= base_path() ?>admin/public_comments.php" class="btn btn-secondary btn-sm">Close Profile ✖</a>
+                            <a href="<?= base_path() ?>/admin/public_comments.php" class="btn btn-secondary btn-sm">Close Profile ✖</a>
                         </div>
 
                         <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; margin-bottom:16px;">
