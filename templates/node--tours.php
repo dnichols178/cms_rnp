@@ -21,7 +21,7 @@ try {
     // Continue silently if table is unchanged
 }
 
-// 2. Query strictly active tours (form_type = 'tour') with valid tour dates
+// 2. Query strictly active tours (form_type = 'tour') with valid, upcoming tour dates
 $tour_stmt = $db->prepare("
     SELECT f.*, 
            COALESCE(SUM(CASE WHEN r.state = 'complete' THEN r.slots ELSE 0 END), 0) AS confirmed_slots,
@@ -29,13 +29,12 @@ $tour_stmt = $db->prepare("
     FROM registration_forms f
     LEFT JOIN registrations r ON r.form_id = f.id
     WHERE f.status = 1 
-      AND LOWER(f.form_type) IN ('tour', 'tours')
-      AND f.slug != 'tour-availability-waitlist'
+      AND LOWER(COALESCE(f.form_type, '')) IN ('tour', 'tours')
+      AND COALESCE(f.slug, '') != 'tour-availability-waitlist'
       AND f.title NOT LIKE '%Waitlist%'
       AND f.title NOT LIKE '%Tour Availability%'
       AND f.tour_date IS NOT NULL 
-      AND f.tour_date != '' 
-      AND f.tour_date != '0000-00-00'
+      AND f.tour_date >= CURDATE()
     GROUP BY f.id
     ORDER BY f.tour_date ASC, f.tour_time ASC
 ");
@@ -163,8 +162,8 @@ foreach ($all_tours as $t) {
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
     }
     .btn-tour-slot:hover {
-        background: lightblue;
-        color: #0b2545 !important;
+        background: #1e3a5f;
+        color: #ffffff !important;
         transform: translateY(-1px);
         box-shadow: 0 3px 6px rgba(0, 0, 0, 0.12);
     }
@@ -257,6 +256,7 @@ foreach ($all_tours as $t) {
             // Process notification interest signup
             $interest_success = false;
             $interest_error = '';
+            $interest_msg = '';
 
             if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'tour_interest_signup') {
                 $name      = trim($_POST['full_name'] ?? '');
@@ -325,7 +325,7 @@ foreach ($all_tours as $t) {
                             }
 
                             if (in_array('node_id', $reg_cols)) {
-                                $reg_data['node_id'] = !empty($node['id']) ? (int)$node['id'] : 0;
+                                $reg_data['node_id'] = !empty($node['id']) ? (int)$node['id'] : null;
                             }
 
                             if (in_array('state', $reg_cols)) $reg_data['state'] = 'complete';
@@ -451,7 +451,7 @@ foreach ($all_tours as $t) {
                                     $seats_left = $cap > 0 ? max(0, $cap - $confirmed) : null;
                                     $has_waitlist = !empty($session['allow_waitlist']);
                                     $time_label = !empty($session['tour_time']) ? $session['tour_time'] : 'Tour Session';
-                                    $session_url = base_path($session['slug']);
+                                    $session_url = base_path($session['slug'] ?? 'tours');
 
                                     // Check if this tour form has multiple time slots configured in registration_time_slots
                                     $time_slots = [];
@@ -482,7 +482,7 @@ foreach ($all_tours as $t) {
                                             $slot_is_full = ($slot_cap > 0 && $slot_confirmed >= $slot_cap);
                                             $slot_allow_waitlist = !empty($slot['allow_waitlist']) || !empty($session['allow_waitlist']);
                                             $slot_is_waitlist = ($slot_is_full && $slot_allow_waitlist);
-                                            $slot_url = base_path($session['slug']) . '?slot_id=' . (int)$slot['id'];
+                                            $slot_url = base_path($session['slug'] ?? 'tours') . '?slot_id=' . (int)$slot['id'];
                                         ?>
                                             <?php if ($slot_is_full && !$slot_allow_waitlist): ?>
                                                 <span class="btn-tour-slot-full" title="This tour session is full">
