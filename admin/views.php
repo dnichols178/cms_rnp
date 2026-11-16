@@ -45,13 +45,13 @@ if ($action === 'ajax_get_vars') {
 // Handle Form Submission: Save View
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'save_view') {
     validate_csrf();
-    $id           = (int)($_POST['id'] ?? 0);
-    $name         = trim($_POST['name'] ?? '');
+    $id            = (int)($_POST['id'] ?? 0);
+    $name          = trim($_POST['name'] ?? '');
     $machine_name = preg_replace('/[^a-z0-9_]/', '', strtolower(trim($_POST['machine_name'] ?? '')));
-    $description  = trim($_POST['description'] ?? '');
-    $status       = isset($_POST['status']) ? 1 : 0;
+    $description   = trim($_POST['description'] ?? '');
+    $status        = isset($_POST['status']) ? 1 : 0;
     $display_type = in_array($_POST['display_type'] ?? '', ['page', 'block'], true) ? $_POST['display_type'] : 'block';
-    $path         = strtolower(trim(preg_replace('/[^a-z0-9_\-\/]/i', '', str_replace(' ', '-', $_POST['path'] ?? '')), '/'));
+    $path          = strtolower(trim(preg_replace('/[^a-z0-9_\-\/]/i', '', str_replace(' ', '-', $_POST['path'] ?? '')), '/'));
 
     $config_json = $_POST['config_payload'] ?? '{}';
     $configuration = json_decode($config_json, true) ?: [];
@@ -221,9 +221,9 @@ try {
                 ?>
 
                 <div style="font-size:0.84rem; color:#64748b; margin-bottom:8px;">
-                    <a href="<?= base_path('admin/views.php') ?>" style="color:#0b2545; text-decoration:none;">&laquo; All Views</a>
+                    <a href="<?= base_path('admin/views.php') ?>" style="color:#0b2545; text-decoration:none;">« All Views</a>
                     <?php if ($is_edit): ?>
-                        &raquo; <span><?= htmlspecialchars($active_view['name']) ?></span>
+                        » <span><?= htmlspecialchars($active_view['name']) ?></span>
                     <?php endif; ?>
                 </div>
 
@@ -325,7 +325,7 @@ try {
                                         <option value="cards" <?= ($disp['format'] ?? '') === 'cards' ? 'selected' : '' ?>>Grid Cards</option>
                                         <option value="table" <?= ($disp['format'] ?? '') === 'table' ? 'selected' : '' ?>>HTML Table (Sortable Headers)</option>
                                         <option value="unformatted" <?= ($disp['format'] ?? '') === 'unformatted' ? 'selected' : '' ?>>Unformatted Rows</option>
-                                        <option value="list" <?= ($disp['format'] ?? '') === 'list' ? 'selected' : '' ?>>HTML List (&lt;ul&gt;)</option>
+                                        <option value="list" <?= ($disp['format'] ?? '') === 'list' ? 'selected' : '' ?>>HTML List (<ul>)</option>
                                         <option value="json" <?= ($disp['format'] ?? '') === 'json' ? 'selected' : '' ?>>Raw JSON / REST Feed</option>
                                     </select>
                                 </div>
@@ -346,7 +346,7 @@ try {
                                     <button type="button" class="btn-secondary" style="font-size:0.75rem; padding:3px 8px;" onclick="openAddFieldModal()">+ Add Field</button>
                                 </div>
                                 <div id="fields_container_list">
-                                    <!-- Rendered dynamically via JS -->
+                                    <!-- Rendered dynamically via JS with reordering controls -->
                                 </div>
                             </div>
                         </div>
@@ -424,7 +424,7 @@ try {
                     <div style="background:#ffffff; width:560px; border-radius:6px; padding:24px; max-height:90vh; overflow-y:auto; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
                         <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:10px; margin-bottom:16px;">
                             <h3 id="modalFieldTitle" style="margin:0; color:#0b2545;">Configure field</h3>
-                            <button type="button" onclick="closeModal('fieldEditModal')" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+                            <button type="button" onclick="closeModal('fieldEditModal')" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">×</button>
                         </div>
                         
                         <input type="hidden" id="modal_field_index" value="">
@@ -453,7 +453,7 @@ try {
                                 <option value="plain_text">Plain text (Strip HTML & encode)</option>
                                 <option value="trimmed">Trimmed text</option>
                                 <option value="date">Date / Time</option>
-                                <option value="image">Image Tag (&lt;img&gt;)</option>
+                                <option value="image">Image Tag (<img>)</option>
                                 <option value="link">Link / Anchor</option>
                             </select>
                         </div>
@@ -467,13 +467,13 @@ try {
                         <div class="form-row" style="margin-top: 15px;">
                             <label style="font-weight: 600; color: #0b2545;">Wrapper HTML Tag</label>
                             <select name="modal_field_wrapper_tag" id="modal_field_wrapper_tag" class="form-control" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px;">
-                                <option value="p">&lt;p&gt; (Paragraph - Default)</option>
-                                <option value="div">&lt;div&gt; (Container)</option>
-                                <option value="span">&lt;span&gt; (Inline)</option>
-                                <option value="h3">&lt;h3&gt; (Heading 3)</option>
-                                <option value="h4">&lt;h4&gt; (Heading 4)</option>
-                                <option value="strong">&lt;strong&gt; (Bold)</option>
-                                <option value="small">&lt;small&gt; (Small text)</option>
+                                <option value="p"><p> (Paragraph - Default)</option>
+                                <option value="div"><div> (Container)</option>
+                                <option value="span"><span> (Inline)</option>
+                                <option value="h3"><h3> (Heading 3)</option>
+                                <option value="h4"><h4> (Heading 4)</option>
+                                <option value="strong"><strong> (Bold)</option>
+                                <option value="small"><small> (Small text)</option>
                             </select>
                             <small style="color: #64748b; font-size: 0.8rem;">The HTML element used to wrap the field output.</small>
                         </div>
@@ -512,12 +512,17 @@ try {
                             <input type="number" id="modal_trim_length" min="1" value="150">
                         </div>
 
+                        <div class="form-row" id="modal_read_more_text_row" style="display:none;">
+                            <label>Read More Button Text</label>
+                            <input type="text" id="modal_read_more_text" placeholder="Read More">
+                        </div>
+
                         <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:4px; padding:12px; margin:14px 0;">
                             <label style="font-weight:700; color:#0b2545; display:flex; align-items:center; gap:8px; cursor:pointer;">
                                 <input type="checkbox" id="modal_rewrite_enabled" onchange="toggleRewriteBox(this.checked)"> Rewrite the output of this field
                             </label>
                             <div id="modal_rewrite_details" style="display:none; margin-top:10px;">
-                                <textarea id="modal_rewrite_template" rows="3" style="width:100%;" placeholder="e.g. &lt;span class='badge'&gt;{{ type }}&lt;/span&gt; &lt;h3&gt;{{ title }}&lt;/h3&gt;"></textarea>
+                                <textarea id="modal_rewrite_template" rows="3" style="width:100%;" placeholder="e.g. <span class='badge'>{{ type }}</span> <h3>{{ title }}</h3>"></textarea>
                                 <div class="token-help">
                                     <strong>Available Tokens:</strong> <code>{{ id }}</code>, <code>{{ title }}</code>, <code>{{ slug }}</code>, <code>{{ body }}</code>, <code>{{ type }}</code>, <code>{{ author_name }}</code>, <code>{{ created_at }}</code>, <code>{{ url }}</code>
                                 </div>
@@ -559,7 +564,7 @@ try {
                     <div style="background:#ffffff; width:520px; border-radius:6px; padding:24px; max-height:85vh; overflow-y:auto; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
                         <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:8px; margin-bottom:14px;">
                             <h3 style="margin:0; color:#0b2545;">Add filter criterion</h3>
-                            <button type="button" onclick="closeModal('filterVariableSelectModal')" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+                            <button type="button" onclick="closeModal('filterVariableSelectModal')" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">×</button>
                         </div>
                         <p style="color:#64748b; font-size:0.86rem; margin-top:0;">Select a content property or taxonomy variable to filter the view results.</p>
                         <div class="form-row">
@@ -569,7 +574,7 @@ try {
                         </div>
                         <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
                             <button type="button" class="btn-secondary" onclick="closeModal('filterVariableSelectModal')">Cancel</button>
-                            <button type="button" class="btn-primary" onclick="proceedToFilterConfig()">Configure Filter &raquo;</button>
+                            <button type="button" class="btn-primary" onclick="proceedToFilterConfig()">Configure Filter »</button>
                         </div>
                     </div>
                 </div>
@@ -579,7 +584,7 @@ try {
                     <div style="background:#ffffff; width:680px; border-radius:6px; padding:24px; max-height:90vh; overflow-y:auto; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
                         <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:8px; margin-bottom:12px;">
                             <h3 id="modalFilterHeaderTitle" style="margin:0; color:#0b2545;">Configure filter criterion</h3>
-                            <button type="button" onclick="closeModal('filterCriterionModal')" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+                            <button type="button" onclick="closeModal('filterCriterionModal')" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">×</button>
                         </div>
                         
                         <p id="modalFilterDesc" style="color:#475569; font-size:0.9rem; margin:0 0 16px 0;"></p>
@@ -604,7 +609,6 @@ try {
                             <div class="drupal-filter-left">
                                 <label style="font-size:0.85rem; font-weight:700; color:#0b2545; display:block; margin-bottom:8px;">Operator</label>
                                 
-                                <!-- Operator Dropdown (Used for Date, Text, Number) -->
                                 <select id="modal_filter_operator_select" style="width:100%; padding:7px;" onchange="onOperatorChange(this.value)">
                                     <option value="=">Is equal to</option>
                                     <option value="<">Is less than</option>
@@ -620,7 +624,6 @@ try {
                                     <option value="NOT_EMPTY">Is not empty (NOT NULL)</option>
                                 </select>
 
-                                <!-- Operator Radios (Used for Published / Status) -->
                                 <div id="modal_filter_operator_radios" style="display:none; flex-direction:column; gap:8px;">
                                     <label style="font-weight:normal; font-size:0.88rem; cursor:pointer;"><input type="radio" name="flt_op_radio" value="=" checked> Is equal to</label>
                                     <label style="font-weight:normal; font-size:0.88rem; cursor:pointer;"><input type="radio" name="flt_op_radio" value="!="> Is not equal to</label>
@@ -629,12 +632,11 @@ try {
                                 </div>
                             </div>
 
-                            <div class="drupal-filter-divider">&gt;</div>
+                            <div class="drupal-filter-divider">></div>
 
                             <!-- Right: Value Column -->
                             <div class="drupal-filter-right">
                                 
-                                <!-- SECTION A: DATE WIDGET -->
                                 <div id="modal_val_section_date" style="display:none;">
                                     <label style="font-size:0.85rem; font-weight:700; color:#0b2545; display:block; margin-bottom:6px;">Value type</label>
                                     <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:12px;">
@@ -651,7 +653,6 @@ try {
                                         <input type="text" id="modal_filter_date_value" placeholder="e.g. 2026-10-27 or -7 days" style="width:100%; padding:8px; margin-top:4px;">
                                     </div>
 
-                                    <!-- Between Min / Max values -->
                                     <div id="modal_date_between_val_wrap" style="display:none; gap:10px;">
                                         <div style="flex:1;">
                                             <label style="font-size:0.85rem; font-weight:700; color:#0b2545;">Min Date / Offset</label>
@@ -664,7 +665,6 @@ try {
                                     </div>
                                 </div>
 
-                                <!-- SECTION B: STATUS / PUBLISHED WIDGET -->
                                 <div id="modal_val_section_status" style="display:none;">
                                     <label style="font-size:0.85rem; font-weight:700; color:#0b2545; display:block; margin-bottom:8px;">Published status</label>
                                     <div style="display:flex; flex-direction:column; gap:8px;">
@@ -674,7 +674,6 @@ try {
                                     </div>
                                 </div>
 
-                                <!-- SECTION C: TAXONOMY SELECTOR -->
                                 <div id="modal_val_section_taxonomy" style="display:none;">
                                     <label style="font-size:0.85rem; font-weight:700; color:#0b2545; display:block; margin-bottom:6px;">Select Term</label>
                                     <select id="modal_filter_tax_val" style="width:100%; padding:8px;">
@@ -687,7 +686,6 @@ try {
                                     </select>
                                 </div>
 
-                                <!-- SECTION D: STANDARD TEXT / NUMERIC INPUT -->
                                 <div id="modal_val_section_generic" style="display:none;">
                                     <label style="font-size:0.85rem; font-weight:700; color:#0b2545; display:block; margin-bottom:6px;">Value</label>
                                     <input type="text" id="modal_filter_generic_val" placeholder="Filter parameter value..." style="width:100%; padding:8px;">
@@ -754,7 +752,6 @@ try {
                     .then(vars => {
                         allVariablesPool = vars;
 
-                        // Reload Field Selector
                         const fSel = document.getElementById('new_field_selector');
                         fSel.innerHTML = '';
                         for (const [k, f] of Object.entries(vars)) {
@@ -765,7 +762,6 @@ try {
                             fSel.appendChild(opt);
                         }
 
-                        // Reload Filter Variable Selector
                         const fltSel = document.getElementById('filter_variable_dropdown');
                         fltSel.innerHTML = '';
                         for (const [k, f] of Object.entries(vars)) {
@@ -793,17 +789,31 @@ try {
                                 <span class="tag-pill">${escapeHtml(f.name)}</span>
                                 ${f.show_label ? '<span class="tag-pill" style="background:#e0f2fe; color:#0369a1;">Label</span>' : ''}
                                 ${f.formatter === 'html' ? '<span class="tag-pill" style="background:#fef3c7; color:#92400e;">HTML</span>' : ''}
+                                ${f.formatter === 'trimmed' ? '<span class="tag-pill" style="background:#f3e8ff; color:#6b21a8;">Trimmed</span>' : ''}
                                 ${f.strip_styles ? '<span class="tag-pill" style="background:#f1f5f9; color:#475569;">No Styles</span>' : ''}
                                 ${f.custom_class ? `<span class="tag-pill" style="background:#f3e8ff; color:#6b21a8;">.${escapeHtml(f.custom_class)}</span>` : ''}
                                 ${f.custom_id ? `<span class="tag-pill" style="background:#fce7f3; color:#9d174d;">#${escapeHtml(f.custom_id)}</span>` : ''}
                             </div>
-                            <div>
+                            <div style="display:flex; align-items:center; gap:4px;">
+                                <div style="display:flex; flex-direction:column; gap:1px;">
+                                    <button type="button" class="btn-secondary" style="font-size:0.6rem; padding:1px 4px; line-height:1;" onclick="moveField(${idx}, -1)" ${idx === 0 ? 'disabled style="opacity:0.4;"' : ''}>▲</button>
+                                    <button type="button" class="btn-secondary" style="font-size:0.6rem; padding:1px 4px; line-height:1;" onclick="moveField(${idx}, 1)" ${idx === viewState.fields.length - 1 ? 'disabled style="opacity:0.4;"' : ''}>▼</button>
+                                </div>
                                 <button type="button" class="btn-secondary" style="font-size:0.75rem; padding:2px 6px;" onclick="editField(${idx})">Edit</button>
-                                <button type="button" class="btn-secondary" style="font-size:0.75rem; padding:2px 6px; color:#c00;" onclick="removeField(${idx})">&times;</button>
+                                <button type="button" class="btn-secondary" style="font-size:0.75rem; padding:2px 6px; color:#c00;" onclick="removeField(${idx})">×</button>
                             </div>
                         `;
                         c.appendChild(row);
                     });
+                }
+
+                function moveField(idx, direction) {
+                    const newIdx = idx + direction;
+                    if (newIdx < 0 || newIdx >= viewState.fields.length) return;
+                    const item = viewState.fields.splice(idx, 1)[0];
+                    viewState.fields.splice(newIdx, 0, item);
+                    renderFieldsList();
+                    syncState();
                 }
 
                 function renderFiltersList() {
@@ -825,7 +835,7 @@ try {
                             </div>
                             <div>
                                 <button type="button" class="btn-secondary" style="font-size:0.75rem; padding:2px 6px;" onclick="openEditFilterModal(${idx})">Edit</button>
-                                <button type="button" class="btn-secondary" style="font-size:0.75rem; padding:2px 6px; color:#c00;" onclick="removeFilter(${idx})">&times;</button>
+                                <button type="button" class="btn-secondary" style="font-size:0.75rem; padding:2px 6px; color:#c00;" onclick="removeFilter(${idx})">×</button>
                             </div>
                         `;
                         c.appendChild(row);
@@ -846,7 +856,7 @@ try {
                             <div>
                                 <strong>${escapeHtml(s.field)}</strong> (${escapeHtml(s.order)})
                             </div>
-                            <button type="button" class="btn-secondary" style="font-size:0.75rem; padding:2px 6px; color:#c00;" onclick="removeSort(${idx})">&times;</button>
+                            <button type="button" class="btn-secondary" style="font-size:0.75rem; padding:2px 6px; color:#c00;" onclick="removeSort(${idx})">×</button>
                         `;
                         c.appendChild(row);
                     });
@@ -871,7 +881,8 @@ try {
                         custom_class: '',
                         custom_id: '',
                         link_to_node: (fname === 'title' ? 1 : 0),
-                        date_format: (fname.includes('date') || fname.includes('created') ? 'M j, Y' : '')
+                        date_format: (fname.includes('date') || fname.includes('created') ? 'M j, Y' : ''),
+                        read_more_text: 'Read More'
                     });
                     closeModal('addFieldSelectorModal');
                     renderFieldsList();
@@ -898,6 +909,7 @@ try {
                     document.getElementById('modal_link_to_node').checked = !!f.link_to_node;
                     document.getElementById('modal_date_format').value = f.date_format || '';
                     document.getElementById('modal_trim_length').value = f.trim_length || 150;
+                    document.getElementById('modal_read_more_text').value = f.read_more_text || 'Read More';
                     document.getElementById('modal_rewrite_enabled').checked = !!f.rewrite_enabled;
                     document.getElementById('modal_rewrite_template').value = f.rewrite_template || '';
                     document.getElementById('modal_hide_empty').checked = !!f.hide_empty;
@@ -923,6 +935,7 @@ try {
                     f.link_to_node = document.getElementById('modal_link_to_node').checked ? 1 : 0;
                     f.date_format = document.getElementById('modal_date_format').value;
                     f.trim_length = parseInt(document.getElementById('modal_trim_length').value, 10) || 150;
+                    f.read_more_text = document.getElementById('modal_read_more_text').value.trim() || 'Read More';
                     f.rewrite_enabled = document.getElementById('modal_rewrite_enabled').checked ? 1 : 0;
                     f.rewrite_template = document.getElementById('modal_rewrite_template').value;
                     f.hide_empty = document.getElementById('modal_hide_empty').checked ? 1 : 0;
@@ -946,6 +959,7 @@ try {
                 function onFormatterChange(val) {
                     document.getElementById('modal_date_format_row').style.display = (val === 'date') ? 'block' : 'none';
                     document.getElementById('modal_trim_length_row').style.display = (val === 'trimmed') ? 'block' : 'none';
+                    document.getElementById('modal_read_more_text_row').style.display = (val === 'trimmed') ? 'block' : 'none';
                 }
 
                 function toggleRewriteBox(show) {
@@ -985,7 +999,6 @@ try {
 
                     document.getElementById('modal_filter_remove_btn').style.display = (idx >= 0) ? 'inline-block' : 'none';
 
-                    // Hide all widget sections initially
                     document.getElementById('modal_val_section_date').style.display = 'none';
                     document.getElementById('modal_val_section_status').style.display = 'none';
                     document.getElementById('modal_val_section_taxonomy').style.display = 'none';
@@ -1138,7 +1151,7 @@ try {
                 }
 
                 function escapeHtml(str) {
-                    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+                    return String(str).replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>').replace(/"/g, '"');
                 }
 
                 function getRadioVal(name) {
@@ -1204,7 +1217,7 @@ try {
                 <!-- ALL VIEWS LIST OVERVIEW -->
                 <div class="page-header-actions">
                     <div>
-                        <h1>Structure &raquo; Views</h1>
+                        <h1>Structure » Views</h1>
                         <p style="color:#64748b; font-size:0.88rem; margin-top:-12px;">
                             Configure dynamic content queries, filterable pages, sortable tables, and block widgets.
                         </p>
@@ -1257,7 +1270,7 @@ try {
                                                 <div style="margin-top:2px;"><a href="<?= base_path($v_path) ?>" target="_blank" style="font-size:0.82rem; font-family:monospace;">/<?= htmlspecialchars($v_path) ?></a></div>
                                             <?php else: ?>
                                                 <span class="tag-pill" style="background:#fef3c7; color:#92400e; font-weight:700;">BLOCK</span>
-                                                <div style="margin-top:2px;"><a href="<?= base_path('admin/blocks.php') ?>" style="font-size:0.8rem;">In Blocks &raquo;</a></div>
+                                                <div style="margin-top:2px;"><a href="<?= base_path('admin/blocks.php') ?>" style="font-size:0.8rem;">In Blocks »</a></div>
                                             <?php endif; ?>
                                         </td>
                                         <td><?= strtoupper(htmlspecialchars($d['format'] ?? 'cards')) ?></td>
