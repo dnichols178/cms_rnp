@@ -21,7 +21,7 @@ try {
     // Continue silently if table is unchanged
 }
 
-// 2. Query strictly active tours (form_type = 'tour') with valid, upcoming tour dates
+// 2. Query strictly active tours (form_type = 'tour') with valid tour dates
 $tour_stmt = $db->prepare("
     SELECT f.*, 
            COALESCE(SUM(CASE WHEN r.state = 'complete' THEN r.slots ELSE 0 END), 0) AS confirmed_slots,
@@ -29,12 +29,13 @@ $tour_stmt = $db->prepare("
     FROM registration_forms f
     LEFT JOIN registrations r ON r.form_id = f.id
     WHERE f.status = 1 
-      AND LOWER(COALESCE(f.form_type, '')) IN ('tour', 'tours')
-      AND COALESCE(f.slug, '') != 'tour-availability-waitlist'
+      AND LOWER(f.form_type) IN ('tour', 'tours')
+      AND f.slug != 'tour-availability-waitlist'
       AND f.title NOT LIKE '%Waitlist%'
       AND f.title NOT LIKE '%Tour Availability%'
       AND f.tour_date IS NOT NULL 
-      AND f.tour_date >= CURDATE()
+      AND f.tour_date != '' 
+      AND f.tour_date != '0000-00-00'
     GROUP BY f.id
     ORDER BY f.tour_date ASC, f.tour_time ASC
 ");
@@ -162,8 +163,8 @@ foreach ($all_tours as $t) {
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
     }
     .btn-tour-slot:hover {
-        background: #1e3a5f;
-        color: #ffffff !important;
+        background: lightblue;
+        color: #0b2545 !important;
         transform: translateY(-1px);
         box-shadow: 0 3px 6px rgba(0, 0, 0, 0.12);
     }
@@ -253,54 +254,81 @@ foreach ($all_tours as $t) {
 
         <?php if (empty($tours_by_date)): ?>
             <?php
-            // Process notification interest signup
+            // 1. Ensure parent form exists in registration_forms with form_type = 'general' on page load
+            $form_slug = 'tour-availability-waitlist';
+            $form_id = null;
+
+            try {
+                $form_stmt = $db->prepare("SELECT id FROM registration_forms WHERE slug = ? OR title = 'Tour Availability Notifications' LIMIT 1");
+                $form_stmt->execute([$form_slug]);
+                $form_id = $form_stmt->fetchColumn();
+
+                if (!$form_id) {
+                    $rf_cols = $db->query("SHOW COLUMNS FROM registration_forms")->fetchAll(PDO::FETCH_COLUMN);
+
+                    $form_data = [
+                        'title'       => 'Tour Availability Notifications',
+                        'slug'        => $form_slug,
+                        'description' => 'Advance interest list for future tour dates.',
+                    ];
+
+                    if (in_array('status', $rf_cols)) $form_data['status'] = 1;
+                    if (in_array('capacity', $rf_cols)) $form_data['capacity'] = 0;
+                    if (in_array('allow_waitlist', $rf_cols)) $form_data['allow_waitlist'] = 0;
+                    if (in_array('form_type', $rf_cols)) $form_data['form_type'] = 'general';
+                    if (in_array('host_type', $rf_cols)) $form_data['host_type'] = 'Page';
+                    if (in_array('tour_date', $rf_cols)) $form_data['tour_date'] = null;
+                    if (in_array('fields_schema', $rf_cols)) $form_data['fields_schema'] = json_encode([]);
+                    if (in_array('created_at', $rf_cols)) $form_data['created_at'] = date('Y-m-d H:i:s');
+                    if (in_array('created', $rf_cols)) $form_data['created'] = time();
+
+                    $f_keys = array_keys($form_data);
+                    $f_fields = implode(', ', $f_keys);
+                    $f_placeholders = implode(', ', array_fill(0, count($f_keys), '?'));
+
+                    $create_form = $db->prepare("INSERT INTO registration_forms ($f_fields) VALUES ($f_placeholders)");
+                    $create_form->execute(array_values($form_data));
+                    $form_id = $db->lastInsertId();
+                }
+            } catch (Exception $e) {
+                // Continue silently if table is unchanged
+            }
+
+            // 2. Process notification interest signup with Honeypot & Timing protection
             $interest_success = false;
             $interest_error = '';
-            $interest_msg = '';
 
             if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'tour_interest_signup') {
-                $name      = trim($_POST['full_name'] ?? '');
-                $email     = trim($_POST['email'] ?? '');
-                $client_ip = $_SERVER['HTTP_CF_CONNECTING_IP'] ?? $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? '';
+                $name        = trim($_POST['full_name'] ?? '');
+                $email       = trim($_POST['email'] ?? '');
+                $client_ip   = $_SERVER['HTTP_CF_CONNECTING_IP'] ?? $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+                $honeypot    = trim($_POST['frnp_hp_company'] ?? '');
+                $submit_time = (int)($_POST['form_token_time'] ?? 0);
 
-                if (empty($name)) {
+                // A. Silent rejection for bots tripping the hidden honeypot field
+                if ($honeypot !== '') {
+                    if (function_exists('watchdog')) {
+                        watchdog('spam', "Spam bot caught via tour notification honeypot trap from IP: {$client_ip}", 'warning');
+                    }
+                    $interest_success = true;
+                    $interest_msg = "Thank you! You've been added to our list. We will notify you by email as soon as new tour sessions are scheduled.";
+                }
+                // B. Minimum form submission threshold (under 3 seconds = bot)
+                elseif ($submit_time === 0 || (time() - $submit_time) < 3) {
+                    $interest_error = 'Submission completed too quickly. Please take a moment and re-submit.';
+                }
+                // C. Required field validation
+                elseif (empty($name)) {
                     $interest_error = 'Please provide your full name.';
                 } elseif (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
                     $interest_error = 'Please provide a valid email address.';
                 } else {
                     try {
-                        // Ensure parent form exists in registration_forms with form_type = 'general'
-                        $form_slug = 'tour-availability-waitlist';
-                        $form_stmt = $db->prepare("SELECT id FROM registration_forms WHERE slug = ? OR title = 'Tour Availability Notifications' LIMIT 1");
-                        $form_stmt->execute([$form_slug]);
-                        $form_id = $form_stmt->fetchColumn();
-
+                        // Fallback if form_id wasn't resolved earlier
                         if (!$form_id) {
-                            $rf_cols = $db->query("SHOW COLUMNS FROM registration_forms")->fetchAll(PDO::FETCH_COLUMN);
-
-                            $form_data = [
-                                'title'       => 'Tour Availability Notifications',
-                                'slug'        => $form_slug,
-                                'description' => 'Advance interest list for future tour dates.',
-                            ];
-
-                            if (in_array('status', $rf_cols)) $form_data['status'] = 1;
-                            if (in_array('capacity', $rf_cols)) $form_data['capacity'] = 0;
-                            if (in_array('allow_waitlist', $rf_cols)) $form_data['allow_waitlist'] = 0;
-                            if (in_array('form_type', $rf_cols)) $form_data['form_type'] = 'general';
-                            if (in_array('host_type', $rf_cols)) $form_data['host_type'] = 'Page';
-                            if (in_array('tour_date', $rf_cols)) $form_data['tour_date'] = null;
-                            if (in_array('fields_schema', $rf_cols)) $form_data['fields_schema'] = json_encode([]);
-                            if (in_array('created_at', $rf_cols)) $form_data['created_at'] = date('Y-m-d H:i:s');
-                            if (in_array('created', $rf_cols)) $form_data['created'] = time();
-
-                            $f_keys = array_keys($form_data);
-                            $f_fields = implode(', ', $f_keys);
-                            $f_placeholders = implode(', ', array_fill(0, count($f_keys), '?'));
-
-                            $create_form = $db->prepare("INSERT INTO registration_forms ($f_fields) VALUES ($f_placeholders)");
-                            $create_form->execute(array_values($form_data));
-                            $form_id = $db->lastInsertId();
+                            $form_stmt = $db->prepare("SELECT id FROM registration_forms WHERE slug = ? OR title = 'Tour Availability Notifications' LIMIT 1");
+                            $form_stmt->execute([$form_slug]);
+                            $form_id = $form_stmt->fetchColumn();
                         }
 
                         // Prevent duplicate signups
@@ -325,7 +353,7 @@ foreach ($all_tours as $t) {
                             }
 
                             if (in_array('node_id', $reg_cols)) {
-                                $reg_data['node_id'] = !empty($node['id']) ? (int)$node['id'] : null;
+                                $reg_data['node_id'] = !empty($node['id']) ? (int)$node['id'] : 0;
                             }
 
                             if (in_array('state', $reg_cols)) $reg_data['state'] = 'complete';
@@ -393,6 +421,13 @@ foreach ($all_tours as $t) {
                         <form method="POST" action="" style="margin: 0;">
                             <input type="hidden" name="action" value="tour_interest_signup">
 
+                            <!-- Anti-Spam Honeypot (Invisible to human users, filled by bots) -->
+                            <div style="display: none !important; position: absolute; left: -9999px;" aria-hidden="true">
+                                <label for="frnp_hp_company">Company</label>
+                                <input type="text" name="frnp_hp_company" id="frnp_hp_company" tabindex="-1" autocomplete="off" value="">
+                                <input type="hidden" name="form_token_time" value="<?= time() ?>">
+                            </div>
+
                             <div class="form-group" style="margin-bottom: 16px;">
                                 <label for="tour_full_name" style="display: block; font-weight: 600; color: #2d3748; margin-bottom: 6px; font-size: 0.9rem;">
                                     Full Name <span style="color: #e53e3e;">*</span>
@@ -451,7 +486,7 @@ foreach ($all_tours as $t) {
                                     $seats_left = $cap > 0 ? max(0, $cap - $confirmed) : null;
                                     $has_waitlist = !empty($session['allow_waitlist']);
                                     $time_label = !empty($session['tour_time']) ? $session['tour_time'] : 'Tour Session';
-                                    $session_url = base_path($session['slug'] ?? 'tours');
+                                    $session_url = base_path($session['slug']);
 
                                     // Check if this tour form has multiple time slots configured in registration_time_slots
                                     $time_slots = [];
@@ -482,11 +517,11 @@ foreach ($all_tours as $t) {
                                             $slot_is_full = ($slot_cap > 0 && $slot_confirmed >= $slot_cap);
                                             $slot_allow_waitlist = !empty($slot['allow_waitlist']) || !empty($session['allow_waitlist']);
                                             $slot_is_waitlist = ($slot_is_full && $slot_allow_waitlist);
-                                            $slot_url = base_path($session['slug'] ?? 'tours') . '?slot_id=' . (int)$slot['id'];
+                                            $slot_url = base_path($session['slug']) . '?slot_id=' . (int)$slot['id'];
                                         ?>
                                             <?php if ($slot_is_full && !$slot_allow_waitlist): ?>
                                                 <span class="btn-tour-slot-full" title="This tour session is full">
-                                                    <span>&#128337; <?= htmlspecialchars($slot['slot_time']) ?></span>
+                                                    <span>🕑 <?= htmlspecialchars($slot['slot_time']) ?></span>
                                                     <span class="full-tag">Tour Full</span>
                                                 </span>
                                             <?php else: ?>
@@ -515,7 +550,7 @@ foreach ($all_tours as $t) {
                                             </a>
                                         <?php else: ?>
                                             <span class="btn-tour-slot-full" title="This tour session is full">
-                                                <span>&#128337; <?= htmlspecialchars($time_label) ?></span>
+                                                <span>🕑 <?= htmlspecialchars($time_label) ?></span>
                                                 <span class="full-tag">Tour Full</span>
                                             </span>
                                         <?php endif; ?>
