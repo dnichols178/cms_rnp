@@ -130,7 +130,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'ajax_upload' && $_SERVER['REQ
     }
 
     $clean_name = preg_replace('/[^a-zA-Z0-9_\.-]/', '_', pathinfo($up['name'], PATHINFO_FILENAME));
-    $new_filename = sprintf('%s_%s.%s', $clean_name, bin2hex(random_bytes(3)), $ext);
+    $new_filename = sprintf('%s.%s', $clean_name, $ext);
     $dest = $dest_dir . $new_filename;
 
     if (move_uploaded_file($up['tmp_name'], $dest)) {
@@ -236,7 +236,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $up = $_FILES['custom_file_' . $fname];
                 $ext = strtolower(pathinfo($up['name'], PATHINFO_EXTENSION));
                 $clean_name = preg_replace('/[^a-zA-Z0-9_\.-]/', '_', pathinfo($up['name'], PATHINFO_FILENAME));
-                $new_filename = sprintf('%s_%s.%s', $clean_name, bin2hex(random_bytes(3)), $ext);
+                $new_filename = sprintf('%s.%s', $clean_name, $ext);
                 $dest = $target_dir . $new_filename;
                 if (move_uploaded_file($up['tmp_name'], $dest)) {
                     // Automatically resize raster images to 750px width
@@ -449,7 +449,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                             <?= htmlspecialchars($field['label']) ?>
                                             <?php if ($is_req): ?><span style="color:#c00;">*</span><?php endif; ?>
                                         </label>
-                                        <small style="color: #64748b;">WYSIWYG active &bull; Click 'View HTML' to edit raw source</small>
+                                        <small style="color: #64748b;">WYSIWYG active • Click 'View HTML' to edit raw source</small>
                                     </div>
                                     <textarea id="node_body" name="body" <?= $req_attr ?>><?= htmlspecialchars($node['body'] ?? '') ?></textarea>
                                     
@@ -496,6 +496,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                     </svg>
                                                     Upload
                                                 </button>
+                                            </div>
+
+                                            <!-- Upload Progress Bar -->
+                                            <div id="progress_wrap_<?= htmlspecialchars($fname) ?>" style="display: none; margin-top: 10px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px;">
+                                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 0.8rem; font-weight: 600; color: #0b2545;">
+                                                    <span id="progress_status_<?= htmlspecialchars($fname) ?>">Uploading...</span>
+                                                    <span id="progress_pct_<?= htmlspecialchars($fname) ?>">0%</span>
+                                                </div>
+                                                <div style="width: 100%; height: 8px; background: #e2e8f0; border-radius: 999px; overflow: hidden;">
+                                                    <div id="progress_bar_<?= htmlspecialchars($fname) ?>" style="width: 0%; height: 100%; background: #0b2545; transition: width 0.15s ease;"></div>
+                                                </div>
                                             </div>
 
                                             <!-- Live Feedback & Preview Container -->
@@ -695,7 +706,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <div class="form-row">
                                     <label>Parent Menu Item</label>
                                     <select name="menu_parent_id">
-                                        <option value="">&lt;Main Menu (Top Level)&gt;</option>
+                                        <option value=""><Main Menu (Top Level)></option>
                                         <?php foreach ($top_level_menu_items as $p_item): ?>
                                             <option value="<?= $p_item['id'] ?>" <?= ((int)($existing_menu_link['parent_id'] ?? 0) === (int)$p_item['id']) ? 'selected' : '' ?>>
                                                 ? <?= htmlspecialchars($p_item['title']) ?>
@@ -726,7 +737,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                             <?php foreach ($node['terms'] as $term_item): ?>
                                                 <span class="autocomplete-deluxe-item" data-id="<?= (int)$term_item['id'] ?>" data-name="<?= htmlspecialchars($term_item['name']) ?>">
                                                     <span class="item-label"><?= htmlspecialchars($term_item['name']) ?></span>
-                                                    <span class="item-remove" onclick="removeDeluxeItem(this, event)">&times;</span>
+                                                    <span class="item-remove" onclick="removeDeluxeItem(this, event)">×</span>
                                                     <input type="hidden" name="terms[]" value="<?= (int)$term_item['id'] ?>">
                                                 </span>
                                             <?php endforeach; ?>
@@ -899,7 +910,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             item.dataset.name = name;
             item.innerHTML = `
                 <span class="item-label">${escapeHtml(name)}</span>
-                <span class="item-remove" onclick="removeDeluxeItem(this, event)">&times;</span>
+                <span class="item-remove" onclick="removeDeluxeItem(this, event)">×</span>
                 <input type="hidden" name="terms[]" value="${escapeHtml(String(id))}">
             `;
 
@@ -1023,6 +1034,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             const fileInput = document.getElementById('file_input_' + fieldName);
             const uploadBtn = document.getElementById('btn_upload_' + fieldName);
             const hiddenVal = document.getElementById('val_' + fieldName);
+            const progressWrap = document.getElementById('progress_wrap_' + fieldName);
+            const progressBar = document.getElementById('progress_bar_' + fieldName);
+            const progressPct = document.getElementById('progress_pct_' + fieldName);
+            const progressStatus = document.getElementById('progress_status_' + fieldName);
 
             if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
                 alert('Please choose a file to upload first.');
@@ -1040,57 +1055,98 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             uploadBtn.disabled = true;
             uploadBtn.innerHTML = 'Uploading...';
 
-            fetch('<?= base_path("admin/node_edit.php?action=ajax_upload") ?>', {
-                method: 'POST',
-                body: formData
-            })
-            .then(res => res.json())
-            .then(data => {
+            if (progressWrap) {
+                progressWrap.style.display = 'block';
+                progressBar.style.width = '0%';
+                progressBar.style.background = '#0b2545';
+                progressPct.textContent = '0%';
+                progressStatus.textContent = 'Starting upload...';
+            }
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '<?= base_path("admin/node_edit.php?action=ajax_upload") ?>', true);
+
+            xhr.upload.onprogress = function(e) {
+                if (e.lengthComputable && progressWrap) {
+                    const percent = Math.round((e.loaded / e.total) * 100);
+                    const loadedMB = (e.loaded / (1024 * 1024)).toFixed(1);
+                    const totalMB = (e.total / (1024 * 1024)).toFixed(1);
+
+                    progressBar.style.width = percent + '%';
+                    progressPct.textContent = percent + '%';
+
+                    if (percent < 100) {
+                        progressStatus.textContent = `Uploading (${loadedMB} MB / ${totalMB} MB)...`;
+                    } else {
+                        progressStatus.textContent = 'Processing file on server...';
+                        progressBar.style.background = '#10b981';
+                    }
+                }
+            };
+
+            xhr.onload = function() {
                 uploadBtn.disabled = false;
                 uploadBtn.innerHTML = origContent;
                 uploadBtn.style.boxShadow = 'none';
+                if (progressWrap) progressWrap.style.display = 'none';
 
-                if (data.success) {
-                    hiddenVal.value = data.url;
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    let data;
+                    try {
+                        data = JSON.parse(xhr.responseText);
+                    } catch (err) {
+                        alert('Upload failed: Invalid JSON response from server. Check PHP size limits.');
+                        return;
+                    }
 
-                    // Clear file input so form submission won't re-upload duplicate file
-                    fileInput.value = '';
+                    if (data.success) {
+                        hiddenVal.value = data.url;
 
-                    const isImage = data.is_img || fieldType === 'image';
-                    const previewThumb = isImage 
-                        ? `<img src="${data.url}" alt="" style="max-height: 48px; max-width: 70px; object-fit: cover; border: 1px solid #cbd5e1; border-radius: 4px; background: #fff;">`
-                        : `<span style="font-size: 1.25rem;">??</span>`;
+                        // Clear file input so form submission won't re-upload duplicate file
+                        fileInput.value = '';
 
-                    const feedbackContainer = document.getElementById('feedback_' + fieldName);
-                    feedbackContainer.style.display = 'block';
-                    feedbackContainer.innerHTML = `
-                        <div class="upload-success-badge">
-                            ${previewThumb}
-                            <div style="flex: 1; min-width: 0;">
-                                <div style="color: #065f46; font-weight: 700; font-size: 0.85rem;">
-                                    ? ${isImage ? 'Image' : 'Document'} uploaded successfully!
+                        const isImage = data.is_img || fieldType === 'image';
+                        const previewThumb = isImage 
+                            ? `<img src="${data.url}" alt="" style="max-height: 48px; max-width: 70px; object-fit: cover; border: 1px solid #cbd5e1; border-radius: 4px; background: #fff;">`
+                            : `<span style="font-size: 1.25rem;">??</span>`;
+
+                        const feedbackContainer = document.getElementById('feedback_' + fieldName);
+                        feedbackContainer.style.display = 'block';
+                        feedbackContainer.innerHTML = `
+                            <div class="upload-success-badge">
+                                ${previewThumb}
+                                <div style="flex: 1; min-width: 0;">
+                                    <div style="color: #065f46; font-weight: 700; font-size: 0.85rem;">
+                                        ? ${isImage ? 'Image' : 'Document'} uploaded successfully!
+                                    </div>
+                                    <div style="font-size: 0.82rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                        <a href="${data.url}" target="_blank" style="color: #0b2545; font-weight: 600; text-decoration: underline;">
+                                            ${data.filename}
+                                        </a>
+                                    </div>
                                 </div>
-                                <div style="font-size: 0.82rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                    <a href="${data.url}" target="_blank" style="color: #0b2545; font-weight: 600; text-decoration: underline;">
-                                        ${data.filename}
-                                    </a>
-                                </div>
+                                <button type="button" class="btn-secondary" style="font-size: 0.75rem; padding: 3px 8px; color: #b91c1c;" onclick="removeUploadedField('${fieldName}')">Remove</button>
                             </div>
-                            <button type="button" class="btn-secondary" style="font-size: 0.75rem; padding: 3px 8px; color: #b91c1c;" onclick="removeUploadedField('${fieldName}')">Remove</button>
-                        </div>
-                    `;
+                        `;
 
-                    fileInput.removeAttribute('required');
-                    appendMediaDrawerPill(data.filename, data.url, isImage);
+                        fileInput.removeAttribute('required');
+                        appendMediaDrawerPill(data.filename, data.url, isImage);
+                    } else {
+                        alert('Upload failed: ' + (data.error || 'Server error occurred.'));
+                    }
                 } else {
-                    alert('Upload failed: ' + (data.error || 'Server error occurred.'));
+                    alert(`Upload failed with HTTP status ${xhr.status}. The file may exceed server limits.`);
                 }
-            })
-            .catch(err => {
+            };
+
+            xhr.onerror = function() {
                 uploadBtn.disabled = false;
                 uploadBtn.innerHTML = origContent;
-                alert('Upload network error: ' + err.message);
-            });
+                if (progressWrap) progressWrap.style.display = 'none';
+                alert('Upload network error occurred.');
+            };
+
+            xhr.send(formData);
         }
 
         function removeUploadedField(fieldName) {
