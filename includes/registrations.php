@@ -116,9 +116,33 @@ function process_form_submission(int $form_id, array $post_data): array {
         return ['success' => false, 'error' => 'Registration for this event has closed.'];
     }
 
+    $ip          = $_SERVER['HTTP_CF_CONNECTING_IP'] ?? $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+    $honeypot    = trim((string)($post_data['frnp_hp_company'] ?? ''));
+    $submit_time = (int)($post_data['form_token_time'] ?? 0);
+
+    // 1. Silent rejection for bots tripping the hidden honeypot field
+    if ($honeypot !== '') {
+        if (function_exists('watchdog')) {
+            watchdog('spam', "Spam bot caught via registration form honeypot trap (Form ID: {$form_id}) from IP: {$ip}", 'warning');
+        }
+        return [
+            'success'   => true,
+            'state'     => 'complete',
+            'reg_id'    => 0,
+            'slot_time' => ''
+        ];
+    }
+
+    // 2. Minimum form submission threshold (under 3 seconds = bot)
+    if ($submit_time === 0 || ($now - $submit_time) < 3) {
+        return [
+            'success' => false,
+            'error'   => 'Submission completed too quickly. Please take a moment and re-submit.'
+        ];
+    }
+
     $email = trim($post_data['reg_email'] ?? '');
     $slots = 1; // Slots is always 1 and not exposed to users
-    $ip    = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
 
     if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         return ['success' => false, 'error' => 'Please provide a valid email address.'];
@@ -328,6 +352,7 @@ function render_registration_form_view(array $form, bool $is_standalone_page = f
     if ($is_tour && $is_standalone_page) {
         $tour_month = '';
         $tour_day = '';
+        $tour_year = '';
 
         if (!empty($form['tour_date'])) {
             $ts = strtotime($form['tour_date']);
@@ -655,7 +680,7 @@ function render_registration_form_view(array $form, bool $is_standalone_page = f
                 <div>
                     Capacity: <strong><?= $counts['confirmed'] ?></strong> of <?= $capacity ?> slots filled
                     <?php if ($counts['waitlist'] > 0): ?>
-                        &bull; <span style="color:#d97706;">(<?= $counts['waitlist'] ?> Waitlist)</span>
+                        • <span style="color:#d97706;">(<?= $counts['waitlist'] ?> Waitlist)</span>
                     <?php endif; ?>
                 </div>
                 <div style="display:flex; align-items:center;">
@@ -681,6 +706,13 @@ function render_registration_form_view(array $form, bool $is_standalone_page = f
             <form method="POST">
                 <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
                 <input type="hidden" name="action" value="submit_reg_<?= $form_id ?>">
+
+                <!-- Anti-Spam Honeypot (Invisible to human users, filled by bots) -->
+                <div style="display: none !important; position: absolute; left: -9999px;" aria-hidden="true">
+                    <label for="frnp_hp_company_<?= $form_id ?>">Company</label>
+                    <input type="text" name="frnp_hp_company" id="frnp_hp_company_<?= $form_id ?>" tabindex="-1" autocomplete="off" value="">
+                    <input type="hidden" name="form_token_time" value="<?= time() ?>">
+                </div>
 
                 <div class="frnp-reg-grid">
                     <!-- Tour Time Slot Selection (When multiple slots exist) -->
@@ -724,15 +756,15 @@ function render_registration_form_view(array $form, bool $is_standalone_page = f
                                             <?php endif; ?>
                                         </div>
                                         <span style="font-size:0.78rem; color:#64748b; margin-top:2px; margin-left: 22px;">
-    <?php if ($s_is_full && $s_allow_wait): ?>
-        <strong style="color:#d97706;">Waitlist Available</strong>
-    <?php else: ?>
-        Capacity: <?= $scap ?> seats
-        <?php if ($s_is_full): ?>
-            &bull; Fully Booked
-        <?php endif; ?>
-    <?php endif; ?>
-</span>
+                                            <?php if ($s_is_full && $s_allow_wait): ?>
+                                                <strong style="color:#d97706;">Waitlist Available</strong>
+                                            <?php else: ?>
+                                                Capacity: <?= $scap ?> seats
+                                                <?php if ($s_is_full): ?>
+                                                    • Fully Booked
+                                                <?php endif; ?>
+                                            <?php endif; ?>
+                                        </span>
                                     </label>
                                 <?php endforeach; ?>
                             </div>
@@ -930,59 +962,59 @@ function render_registration_form_view(array $form, bool $is_standalone_page = f
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-    const phoneInput = document.querySelector('input[name="custom_phone"]');
+        const phoneInput = document.querySelector('input[name="custom_phone"]');
 
-    if (!phoneInput) return;
+        if (!phoneInput) return;
 
-    function formatPhoneNumber(val) {
-        // Strip everything except numeric digits
-        const digits = val.replace(/\D/g, '').substring(0, 10);
-        const len = digits.length;
+        function formatPhoneNumber(val) {
+            // Strip everything except numeric digits
+            const digits = val.replace(/\D/g, '').substring(0, 10);
+            const len = digits.length;
 
-        if (len === 0) {
-            return '';
-        } else if (len < 4) {
-            return `(${digits}`;
-        } else if (len < 7) {
-            return `(${digits.substring(0, 3)}) ${digits.substring(3)}`;
-        } else {
-            return `(${digits.substring(0, 3)}) ${digits.substring(3, 6)}-${digits.substring(6, 10)}`;
-        }
-    }
-
-    phoneInput.addEventListener('input', function (e) {
-        // Format live as digits are typed or pasted
-        this.value = formatPhoneNumber(this.value);
-    });
-
-    phoneInput.addEventListener('keydown', function (e) {
-        // Handle Backspace when directly adjacent to formatting characters
-        if (e.key === 'Backspace') {
-            const cursor = this.selectionStart;
-            const val = this.value;
-
-            // If the character directly behind the cursor is a formatting char, drop the digit before it
-            if (cursor && [' ', ')', '-', '('].includes(val[cursor - 1])) {
-                e.preventDefault();
-                const digits = val.replace(/\D/g, '');
-                // Calculate position relative to raw digits and strip one
-                const digitsBeforeCursor = val.substring(0, cursor).replace(/\D/g, '');
-                const targetIdx = digitsBeforeCursor.length - 1;
-
-                if (targetIdx >= 0) {
-                    const newDigits = digits.slice(0, targetIdx) + digits.slice(targetIdx + 1);
-                    this.value = formatPhoneNumber(newDigits);
-                }
+            if (len === 0) {
+                return '';
+            } else if (len < 4) {
+                return `(${digits}`;
+            } else if (len < 7) {
+                return `(${digits.substring(0, 3)}) ${digits.substring(3)}`;
+            } else {
+                return `(${digits.substring(0, 3)}) ${digits.substring(3, 6)}-${digits.substring(6, 10)}`;
             }
         }
-    });
 
-    phoneInput.addEventListener('paste', function (e) {
-        e.preventDefault();
-        const pasteData = (e.clipboardData || window.clipboardData).getData('text');
-        this.value = formatPhoneNumber(pasteData);
+        phoneInput.addEventListener('input', function (e) {
+            // Format live as digits are typed or pasted
+            this.value = formatPhoneNumber(this.value);
+        });
+
+        phoneInput.addEventListener('keydown', function (e) {
+            // Handle Backspace when directly adjacent to formatting characters
+            if (e.key === 'Backspace') {
+                const cursor = this.selectionStart;
+                const val = this.value;
+
+                // If the character directly behind the cursor is a formatting char, drop the digit before it
+                if (cursor && [' ', ')', '-', '('].includes(val[cursor - 1])) {
+                    e.preventDefault();
+                    const digits = val.replace(/\D/g, '');
+                    // Calculate position relative to raw digits and strip one
+                    const digitsBeforeCursor = val.substring(0, cursor).replace(/\D/g, '');
+                    const targetIdx = digitsBeforeCursor.length - 1;
+
+                    if (targetIdx >= 0) {
+                        const newDigits = digits.slice(0, targetIdx) + digits.slice(targetIdx + 1);
+                        this.value = formatPhoneNumber(newDigits);
+                    }
+                }
+            }
+        });
+
+        phoneInput.addEventListener('paste', function (e) {
+            e.preventDefault();
+            const pasteData = (e.clipboardData || window.clipboardData).getData('text');
+            this.value = formatPhoneNumber(pasteData);
+        });
     });
-});
     </script>
     <?php
 }
@@ -1013,4 +1045,3 @@ function render_registration_form(array $node): void {
         render_registration_form_view($form, false);
     }
 }
-
