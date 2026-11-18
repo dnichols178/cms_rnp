@@ -7,6 +7,13 @@ require_once __DIR__ . '/../includes/analytics.php';
 
 record_pageview($node ?? null);
 
+// Trigger automated daily database backup check (runs once per day on first site hit)
+if (!defined('FRNP_BACKUP_HELPER_ONLY')) {
+    define('FRNP_BACKUP_HELPER_ONLY', true);
+}
+require_once __DIR__ . '/../admin/backup.php';
+ensure_daily_backup();
+
 $can_edit_current_node = !empty($node['id']) && (
     user_has_permission('create_content') || 
     user_has_permission('edit_any_content') ||
