@@ -6,6 +6,22 @@ require_permission('administer_site');
 
 $db = get_db();
 
+// Ensure Training Permissions exist in the permissions table
+$training_permissions = [
+    'add_training'      => 'Upload and create new training modules',
+    'view_any_training' => 'View and manage any training module',
+    'view_own_training' => 'View and manage only own uploaded training modules',
+];
+
+$check_perm = $db->prepare('SELECT id FROM permissions WHERE machine_name = ? LIMIT 1');
+$insert_perm = $db->prepare('INSERT INTO permissions (machine_name, description) VALUES (?, ?)');
+foreach ($training_permissions as $machine_name => $description) {
+    $check_perm->execute([$machine_name]);
+    if (!$check_perm->fetchColumn()) {
+        $insert_perm->execute([$machine_name, $description]);
+    }
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $matrix = $_POST['perm'] ?? []; // [role_id => [perm_id => "1"]]
     
@@ -51,7 +67,7 @@ foreach ($rp as $row) {
             <?php require __DIR__ . '/nav.php'; ?>
         </aside>
         <main class="admin-main">
-            <h1>People &raquo; Permissions Matrix</h1>
+            <h1>People » Permissions Matrix</h1>
             <?php render_flash_messages(); ?>
 
             <form method="POST" class="card">
