@@ -12,6 +12,50 @@ require_permission('view_registrations');
 
 $db = get_db();
 
+// --- Tour Landing Page (/tours) Diagnostic & 1-Click Auto-Repair ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'repair_tours_page') {
+    validate_csrf();
+    $existing_tours_node = $db->query("
+        SELECT id FROM nodes 
+        WHERE slug IN ('tours', 'tour') OR template IN ('node--tours.php', 'node--tours') 
+        ORDER BY (slug = 'tours') DESC, id ASC LIMIT 1
+    ")->fetch(PDO::FETCH_ASSOC);
+
+    if ($existing_tours_node) {
+        $stmt = $db->prepare("UPDATE nodes SET slug = 'tours', auto_slug = 0, status = 'published', template = 'node--tours.php' WHERE id = ?");
+        $stmt->execute([$existing_tours_node['id']]);
+        set_flash('success', 'The /tours landing page has been repaired, published, and locked to the Tours template.');
+    } else {
+        $stmt = $db->prepare("
+            INSERT INTO nodes (type, title, slug, auto_slug, body, format, fields_data, uid, status, template, created_at, updated_at)
+            VALUES ('page', 'Community Tours', 'tours', 0, '<p>The United States Department of Energy (DOE) conducts public tours of the Paducah Site.</p>', 'filtered_html', '{}', ?, 'published', 'node--tours.php', NOW(), NOW())
+        ");
+        $stmt->execute([current_user()['id'] ?? 1]);
+        set_flash('success', 'Created and published the /tours landing page locked to the Tours template.');
+    }
+    header('Location: ' . base_path('admin/registrations.php'));
+    exit;
+}
+
+$tours_page_node = $db->query("
+    SELECT id, title, slug, status, auto_slug, template 
+    FROM nodes 
+    WHERE slug IN ('tours', 'tour') OR template IN ('node--tours.php', 'node--tours')
+    ORDER BY (slug = 'tours') DESC, id ASC 
+    LIMIT 1
+")->fetch(PDO::FETCH_ASSOC);
+
+$tours_page_issue = null;
+if (!$tours_page_node) {
+    $tours_page_issue = 'No Basic Page with the slug <code>/tours</code> exists in the database. Public tour schedules and waitlist notifications will return a 404 until the page is created.';
+} elseif ($tours_page_node['slug'] !== 'tours') {
+    $tours_page_issue = 'The Tours page (<strong>' . htmlspecialchars($tours_page_node['title']) . '</strong>) currently has the slug <code>/' . htmlspecialchars($tours_page_node['slug']) . '</code> instead of <code>/tours</code>, which prevents <code>node--tours.php</code> from loading automatically.';
+} elseif ($tours_page_node['status'] !== 'published' && $tours_page_node['status'] !== '1') {
+    $tours_page_issue = 'The <code>/tours</code> page is currently set to <strong>' . htmlspecialchars($tours_page_node['status']) . '</strong> and is not visible to the public.';
+} elseif ((int)$tours_page_node['auto_slug'] === 1) {
+    $tours_page_issue = 'The <code>/tours</code> page has <strong>Generate automatic URL alias (Pathauto)</strong> enabled. Saving that page in the editor will overwrite its <code>/tours</code> slug and break the tour form.';
+}
+
 // Auto-heal columns and tables if not yet present
 try {
     $has_unique_col = $db->query("SHOW COLUMNS FROM registration_forms LIKE 'unique_email'")->fetch();
@@ -1078,6 +1122,30 @@ if ($active_form) {
                 </div>
 
             <?php else: ?>
+                <?php if ($tours_page_issue !== null): ?>
+    <div style="background: #fef2f2; border: 1px solid #f87171; border-left: 5px solid #dc2626; border-radius: 6px; padding: 14px 18px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
+        <div style="display: flex; align-items: flex-start; gap: 12px; flex: 1; min-width: 260px;">
+            <span style="background: #dc2626; color: #fff; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; letter-spacing: 0.5px; white-space: nowrap; margin-top: 2px;">
+                ⚠ Tour Page Warning
+            </span>
+            <div style="color: #7f1d1d; font-size: 0.9rem; line-height: 1.45;">
+                <?= $tours_page_issue ?>
+            </div>
+        </div>
+        <form method="POST" action="" style="margin: 0;">
+            <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
+            <input type="hidden" name="action" value="repair_tours_page">
+            <button type="submit" class="btn-primary" style="background: #dc2626; border-color: #b91c1c; color: #fff; font-size: 0.85rem; padding: 7px 14px; white-space: nowrap; cursor: pointer;">
+                <?= !$tours_page_node ? '+ Create /tours Page Now' : '🔧 Fix & Lock /tours Slug' ?>
+            </button>
+        </form>
+    </div>
+<?php else: ?>
+    <div style="margin-bottom: 16px; display: inline-flex; align-items: center; gap: 8px; background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">
+        <span>✓</span>
+        <span>Tour Portal Active: <a href="<?= base_path('tours') ?>" target="_blank" style="color: #047857; text-decoration: underline;">/tours</a> (Locked to <code>node--tours.php</code>)</span>
+    </div>
+<?php endif; ?>
                 <!-- 2. FORMS OVERVIEW & MANAGEMENT -->
                 <div class="page-header-actions" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
                     <div>
