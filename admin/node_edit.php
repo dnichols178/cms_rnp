@@ -153,6 +153,11 @@ if (isset($_GET['action']) && $_GET['action'] === 'ajax_upload' && $_SERVER['REQ
 }
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : null;
+if ($id === 1) {
+	set_flash('error', 'Homepage is system-protected and cannot be edited via the content editor. Homepage content can be added in blocks.');
+	header('Location: ' . base_path('admin/nodes.php'));
+	exit;
+}
 $node = null;
 
 if ($id) {
@@ -500,11 +505,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                         <?php if ($ftype === 'image'): ?>
                                                             <img src="<?= htmlspecialchars((string)$val) ?>" alt="" style="max-height: 48px; max-width: 70px; object-fit: cover; border: 1px solid #cbd5e1; border-radius: 4px; background: #fff;">
                                                         <?php else: ?>
-                                                            <span style="font-size: 1.25rem;">📄</span>
+                                                            <span style="font-size: 1.25rem;">??</span>
                                                         <?php endif; ?>
                                                         <div style="flex: 1; min-width: 0;">
                                                             <div style="color: #065f46; font-weight: 700; font-size: 0.85rem;">
-                                                                ✓ Current <?= $ftype === 'image' ? 'Image' : 'Document' ?>:
+                                                                ? Current <?= $ftype === 'image' ? 'Image' : 'Document' ?>:
                                                             </div>
                                                             <div style="font-size: 0.82rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                                                                 <a href="<?= htmlspecialchars((string)$val) ?>" target="_blank" style="color: #0b2545; font-weight: 600; text-decoration: underline;">
@@ -693,7 +698,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         <option value="">&lt;Main Menu (Top Level)&gt;</option>
                                         <?php foreach ($top_level_menu_items as $p_item): ?>
                                             <option value="<?= $p_item['id'] ?>" <?= ((int)($existing_menu_link['parent_id'] ?? 0) === (int)$p_item['id']) ? 'selected' : '' ?>>
-                                                ↳ <?= htmlspecialchars($p_item['title']) ?>
+                                                ? <?= htmlspecialchars($p_item['title']) ?>
                                             </option>
                                         <?php endforeach; ?>
                                     </select>
@@ -1054,7 +1059,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     const isImage = data.is_img || fieldType === 'image';
                     const previewThumb = isImage 
                         ? `<img src="${data.url}" alt="" style="max-height: 48px; max-width: 70px; object-fit: cover; border: 1px solid #cbd5e1; border-radius: 4px; background: #fff;">`
-                        : `<span style="font-size: 1.25rem;">📄</span>`;
+                        : `<span style="font-size: 1.25rem;">??</span>`;
 
                     const feedbackContainer = document.getElementById('feedback_' + fieldName);
                     feedbackContainer.style.display = 'block';
@@ -1063,7 +1068,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             ${previewThumb}
                             <div style="flex: 1; min-width: 0;">
                                 <div style="color: #065f46; font-weight: 700; font-size: 0.85rem;">
-                                    ✓ ${isImage ? 'Image' : 'Document'} uploaded successfully!
+                                    ? ${isImage ? 'Image' : 'Document'} uploaded successfully!
                                 </div>
                                 <div style="font-size: 0.82rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                                     <a href="${data.url}" target="_blank" style="color: #0b2545; font-weight: 600; text-decoration: underline;">
