@@ -301,6 +301,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_form'])) {
             }
         }
 
+        // Sync corresponding widget entry in the blocks table
+        if ($saved_form_id > 0) {
+            $block_shortcode = "[registration_form:{$saved_form_id}]";
+            $block_title     = mb_substr($title, 0, 100);
+
+            $blk_stmt = $db->prepare('SELECT id FROM blocks WHERE TRIM(body) = :shortcode LIMIT 1');
+            $blk_stmt->execute(['shortcode' => $block_shortcode]);
+            $existing_block_id = $blk_stmt->fetchColumn();
+
+            if ($host_type === 'block') {
+                if ($existing_block_id) {
+                    // Preserve any region, weight, and visibility rules configured in blocks.php
+                    $upd_blk = $db->prepare('UPDATE blocks SET title = :title WHERE id = :id');
+                    $upd_blk->execute([
+                        'title' => $block_title,
+                        'id'    => $existing_block_id,
+                    ]);
+                } else {
+                    $max_w = (int)$db->query("SELECT COALESCE(MAX(weight), 0) FROM blocks WHERE region = 'sidebar'")->fetchColumn();
+                    $ins_blk = $db->prepare("
+                        INSERT INTO blocks
+                        (title, region, body, weight, status, visibility_pages, visibility_mode, visibility_types, visibility_roles)
+                        VALUES
+                        (:title, 'sidebar', :body, :weight, :status, '', 'show_only', '', '')
+                    ");
+                    $ins_blk->execute([
+                        'title'  => $block_title,
+                        'body'   => $block_shortcode,
+                        'weight' => $max_w + 10,
+                        'status' => $status,
+                    ]);
+                }
+            } elseif ($existing_block_id) {
+                // Host target switched from Block back to Page — remove the auto-created block
+                $db->prepare('DELETE FROM blocks WHERE id = :id')->execute(['id' => $existing_block_id]);
+            }
+        }
+
         cache_clear();
         header('Location: ' . base_path('admin/registrations.php'));
         exit;
@@ -329,6 +367,8 @@ if ($action === 'delete_form' && isset($_GET['id'])) {
     $stmt->execute(['id' => $form_del_id]);
     $db->prepare('DELETE FROM registration_time_slots WHERE form_id = :id')->execute(['id' => $form_del_id]);
     $db->prepare('DELETE FROM registrations WHERE form_id = :id')->execute(['id' => $form_del_id]);
+    $db->prepare('DELETE FROM blocks WHERE TRIM(body) = :shortcode')
+       ->execute(['shortcode' => "[registration_form:{$form_del_id}]"]);
     cache_clear();
     watchdog('registrations', "Deleted registration form #{$form_del_id} and all attendee submissions.", 'notice');
     set_flash('success', 'Registration form and its submissions deleted.');
