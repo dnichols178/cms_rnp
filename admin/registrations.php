@@ -479,7 +479,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_broadcast_email'
         }
 
         $cta_url = !empty($target_form['slug']) ? ('https://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . base_path($target_form['slug'])) : null;
-        $cta_lbl = !empty($target_form['slug']) ? 'View Event Details' : null;
+        $cta_lbl = !empty($target_form['slug']) ? 'View Details' : null;
 
         $email_html = function_exists('build_frnp_email_html')
             ? build_frnp_email_html($personalized_subject, $personalized_body, $cta_url, $cta_lbl)
@@ -698,6 +698,71 @@ if ($active_form) {
         $all_form_slots[$slot_item['form_id']][] = $slot_item;
     }
 }
+// 9. Aggregate Existing Fields from Registration Forms & Content Types
+$existing_fields_library = [
+    'registration' => [],
+    'content_type' => [],
+];
+
+try {
+    // Pull unique fields from existing registration forms
+    $rf_rows = $db->query("SELECT title, fields_schema FROM registration_forms ORDER BY id DESC")->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($rf_rows as $rf_row) {
+        $decoded = json_decode((string)($rf_row['fields_schema'] ?? '[]'), true);
+        if (!is_array($decoded)) continue;
+
+        foreach ($decoded as $fld) {
+            $fname = trim((string)($fld['name'] ?? ''));
+            if ($fname === '' || isset($existing_fields_library['registration'][$fname])) {
+                continue;
+            }
+            $existing_fields_library['registration'][$fname] = [
+                'name'      => $fname,
+                'label'     => trim((string)($fld['label'] ?? ucwords(str_replace('_', ' ', $fname)))),
+                'type'      => trim((string)($fld['type'] ?? 'text')),
+                'required'  => !empty($fld['required']) ? 1 : 0,
+                'options'   => $fld['options'] ?? [],
+                'help_text' => (string)($fld['help_text'] ?? ''),
+                'source'    => (string)$rf_row['title'],
+            ];
+        }
+    }
+
+    // Pull compatible unique fields from content types (excluding core 'body' & media-only types)
+    $ct_rows = $db->query("SELECT name, fields_schema FROM content_types ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
+    $supported_form_types = ['text', 'tel', 'textarea', 'number', 'date', 'select', 'checkbox', 'email'];
+    foreach ($ct_rows as $ct_row) {
+        $decoded = json_decode((string)($ct_row['fields_schema'] ?? '[]'), true);
+        if (!is_array($decoded)) continue;
+
+        foreach ($decoded as $fld) {
+            $fname = trim((string)($fld['name'] ?? ''));
+            $ftype = trim((string)($fld['type'] ?? 'text'));
+            if (
+                $fname === '' ||
+                $ftype === 'body' ||
+                !in_array($ftype, $supported_form_types, true) ||
+                isset($existing_fields_library['registration'][$fname]) ||
+                isset($existing_fields_library['content_type'][$fname])
+            ) {
+                continue;
+            }
+            $existing_fields_library['content_type'][$fname] = [
+                'name'      => $fname,
+                'label'     => trim((string)($fld['label'] ?? ucwords(str_replace('_', ' ', $fname)))),
+                'type'      => $ftype,
+                'required'  => !empty($fld['required']) ? 1 : 0,
+                'options'   => $fld['options'] ?? [],
+                'help_text' => (string)($fld['help_text'] ?? ''),
+                'source'    => (string)$ct_row['name'],
+            ];
+        }
+    }
+} catch (\Throwable $e) {}
+
+// Re-index as arrays for clean JSON encoding
+$existing_fields_library['registration'] = array_values($existing_fields_library['registration']);
+$existing_fields_library['content_type'] = array_values($existing_fields_library['content_type']);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -1151,7 +1216,7 @@ if ($active_form) {
                     <div>
                         <h1 style="margin: 0 0 4px 0;">Structure &raquo; Registration Forms</h1>
                         <p style="color: #64748b; font-size: 0.88rem; margin: 0;">
-                            Create event registrations and site tours, set capacities, manage dynamic fields, and review attendees.
+                            Create registrations and site tours, set capacities, manage dynamic fields, and review attendees.
                         </p>
                     </div>
                     <div style="display: flex; gap: 10px;">
@@ -1299,7 +1364,7 @@ if ($active_form) {
                 <div class="form-row" style="margin-bottom: 15px;">
                     <label>Registration Type</label>
                     <select name="form_type" id="modal_form_type" onchange="onFormTypeChange(this.value)">
-                        <option value="general">General Event Form</option>
+                        <option value="general">General Form</option>
                         <option value="tour">Site Tour Registration</option>
                     </select>
                 </div>
@@ -1350,7 +1415,7 @@ if ($active_form) {
                 </div>
 
                 <div class="form-row" id="modal_description_wrap" style="margin-bottom: 15px;">
-                    <label>Description / Event Instructions (WYSIWYG)</label>
+                    <label>Description / Instructions (WYSIWYG)</label>
                     <textarea name="description" id="modal_description" rows="5" placeholder="Brief briefing notes, directions, or requirements..."></textarea>
                 </div>
 
@@ -1387,6 +1452,22 @@ if ($active_form) {
                             <button type="button" class="btn-secondary" style="font-size: 0.78rem; padding: 4px 10px;" onclick="openFieldModal()">+ Add Field</button>
                         </div>
                     </div>
+                    <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 14px 16px; margin-bottom: 18px;">
+
+
+                    <!-- Existing Database Field Picker -->
+                    <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px dashed #cbd5e1; width: 100%; box-sizing: border-box;">
+    <select id="existingFieldSelect" style="flex: 1 1 0%; min-width: 0; max-width: 100%; padding: 6px 10px; font-size: 0.84rem; border: 1px solid #cbd5e1; border-radius: 4px; background: #ffffff; text-overflow: ellipsis;">
+        <option value="">-- Reuse an existing field from database --</option>
+    </select>
+    <button type="button" class="btn-secondary" style="flex-shrink: 0; font-size: 0.78rem; padding: 6px 12px; white-space: nowrap;" onclick="addSelectedExistingField()">
+        + Add Existing
+    </button>
+</div>
+
+                    <div id="schemaFieldsList">
+                    </div>
+                </div>
                     <div id="schemaFieldsList">
                     </div>
                 </div>
@@ -1466,7 +1547,7 @@ if ($active_form) {
                 <div>
                     <h3 style="margin: 0; color: #0b2545;">Send Broadcast Email to Registrants</h3>
                     <div style="font-size: 0.8rem; color: #64748b; margin-top: 2px;">
-                        Event: <strong><?= htmlspecialchars($active_form['title']) ?></strong>
+                        Form: <strong><?= htmlspecialchars($active_form['title']) ?></strong>
                     </div>
                 </div>
                 <button type="button" onclick="closeBroadcastModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #64748b;">&times;</button>
@@ -1533,41 +1614,74 @@ if ($active_form) {
 
     <script>
         let currentSchema = [];
+        const existingFieldsLibrary = <?= json_encode($existing_fields_library, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
 
-        $(document).ready(function() {
-            if ($.fn.trumbowyg) {
-                $('#modal_description').trumbowyg({
-                    btns: [
-                        ['viewHTML'],
-                        ['undo', 'redo'],
-                        ['formatting'],
-                        ['strong', 'em', 'underline'],
-                        ['link'],
-                        ['unorderedList', 'orderedList'],
-                        ['horizontalRule'],
-                        ['removeformat'],
-                        ['fullscreen']
-                    ],
-                    autogrow: true
+        function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = String(str ?? '');
+    return div.innerHTML;
+}
+
+        function populateExistingFieldsDropdown() {
+            const select = document.getElementById('existingFieldSelect');
+            if (!select) return;
+
+            const usedNames = new Set(currentSchema.map(f => String(f.name || '').toLowerCase()));
+            select.innerHTML = '<option value="">-- Reuse an existing field from database --</option>';
+
+            const buildGroup = (label, items, groupKey) => {
+                if (!items || items.length === 0) return;
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = label;
+
+                items.forEach((f, idx) => {
+                    const opt = document.createElement('option');
+                    const alreadyAdded = usedNames.has(String(f.name || '').toLowerCase());
+                    opt.value = `${groupKey}:${idx}`;
+                    opt.disabled = alreadyAdded;
+                    opt.textContent = `${f.label} (${f.name}) [${f.type}]${alreadyAdded ? ' — Added' : ''}`;
+                    optgroup.appendChild(opt);
                 });
 
-                if ($('#modal_email_body').length) {
-                    $('#modal_email_body').trumbowyg({
-                        btns: [
-                            ['viewHTML'],
-                            ['undo', 'redo'],
-                            ['formatting'],
-                            ['strong', 'em', 'underline'],
-                            ['link'],
-                            ['unorderedList', 'orderedList'],
-                            ['horizontalRule'],
-                            ['removeformat']
-                        ],
-                        autogrow: false
-                    });
-                }
+                select.appendChild(optgroup);
+            };
+
+            buildGroup('From Existing Registration Forms', existingFieldsLibrary.registration, 'registration');
+            buildGroup('From Content Types', existingFieldsLibrary.content_type, 'content_type');
+        }
+
+        function addSelectedExistingField() {
+            const select = document.getElementById('existingFieldSelect');
+            if (!select || !select.value) return;
+
+            const [groupKey, idxStr] = select.value.split(':');
+            const idx = parseInt(idxStr, 10);
+            const sourceList = existingFieldsLibrary[groupKey] || [];
+            const chosen = sourceList[idx];
+            if (!chosen) return;
+
+            const exists = currentSchema.some(f => String(f.name || '').toLowerCase() === chosen.name.toLowerCase());
+            if (exists) {
+                alert(`The field "${chosen.name}" is already on this form.`);
+                return;
             }
-        });
+
+            const fieldCopy = {
+                name: chosen.name,
+                label: chosen.label,
+                type: chosen.type,
+                required: chosen.required ? 1 : 0
+            };
+            if (Array.isArray(chosen.options) && chosen.options.length > 0) {
+                fieldCopy.options = [...chosen.options];
+            }
+            if (chosen.help_text) {
+                fieldCopy.help_text = chosen.help_text;
+            }
+
+            currentSchema.push(fieldCopy);
+            renderSchemaList();
+        }
 
         function openBroadcastModal() {
             const modal = document.getElementById('emailBroadcastModal');
@@ -1706,24 +1820,25 @@ if ($active_form) {
             wrap.innerHTML = '';
             if (currentSchema.length === 0) {
                 wrap.innerHTML = '<div style="color:#94a3b8; font-size:0.82rem; font-style:italic;">No custom fields configured. Only Email Address will be collected.</div>';
-                return;
+            } else {
+                currentSchema.forEach((f, idx) => {
+                    const el = document.createElement('div');
+                    el.className = 'schema-field-item';
+                    el.innerHTML = `
+                        <div>
+                            <strong>${escapeHtml(f.label || f.name)}</strong> 
+                            <code style="font-size:0.75rem; color:#64748b;">(${escapeHtml(f.name)})</code>
+                            <span class="badge" style="background:#e2e8f0; font-size:0.72rem; margin-left:6px;">${escapeHtml(f.type)}</span>
+                            ${f.required ? '<span style="color:#dc2626; font-size:0.8rem; margin-left:4px;">*Required</span>' : ''}
+                        </div>
+                        <div>
+                            <button type="button" onclick="removeSchemaField(${idx})" style="background:none; border:none; color:#dc2626; cursor:pointer; font-size:1.1rem;">×</button>
+                        </div>
+                    `;
+                    wrap.appendChild(el);
+                });
             }
-            currentSchema.forEach((f, idx) => {
-                const el = document.createElement('div');
-                el.className = 'schema-field-item';
-                el.innerHTML = `
-                    <div>
-                        <strong>${f.label || f.name}</strong> 
-                        <code style="font-size:0.75rem; color:#64748b;">(${f.name})</code>
-                        <span class="badge" style="background:#e2e8f0; font-size:0.72rem; margin-left:6px;">${f.type}</span>
-                        ${f.required ? '<span style="color:#dc2626; font-size:0.8rem; margin-left:4px;">*Required</span>' : ''}
-                    </div>
-                    <div>
-                        <button type="button" onclick="removeSchemaField(${idx})" style="background:none; border:none; color:#dc2626; cursor:pointer; font-size:1.1rem;">&times;</button>
-                    </div>
-                `;
-                wrap.appendChild(el);
-            });
+            populateExistingFieldsDropdown();
         }
 
         function openFormModal(data = null, defaultType = 'general', slotsData = []) {
@@ -1835,6 +1950,11 @@ if ($active_form) {
 
             if (!label || !name) {
                 alert('Field Label and Machine Key are required.');
+                return;
+            }
+
+            if (currentSchema.some(f => String(f.name || '').toLowerCase() === name.toLowerCase())) {
+                alert(`A field with machine key "${name}" already exists on this form.`);
                 return;
             }
 
