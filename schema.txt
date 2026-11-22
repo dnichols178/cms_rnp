@@ -250,3 +250,8 @@ Stack trace:
 #2 C:\Inetpub\wwwroot\devexternal\index.php(425): render_node(Array)
 #3 {main}
   thrown in C:\Inetpub\wwwroot\devexternal\templates\node--tours.php on line 25
+
+foreach ($all_tours as $t) {
+    if (empty($t['tour_date']) || $t['tour_date'] === '0000-00-00') {
+        continue;
+    }
