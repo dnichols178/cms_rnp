@@ -242,3 +242,11 @@ watchdog	severity	varchar(16)	NO	'notice'
 watchdog	link	varchar(255)	YES	NULL				
 watchdog	ip_address	varchar(45)	NO	NULL				
 watchdog	timestamp	datetime	NO	current_timestamp()				
+
+PHP Fatal error:  Uncaught PDOException: SQLSTATE[HY000]: General error: 1525 Incorrect DATE value: '' in C:\Inetpub\wwwroot\devexternal\templates\node--tours.php:25
+Stack trace:
+#0 C:\Inetpub\wwwroot\devexternal\templates\node--tours.php(25): PDO->prepare('\r\n    SELECT f....')
+#1 C:\Inetpub\wwwroot\devexternal\includes\template.php(45): include('C:\\Inetpub\\wwwr...')
+#2 C:\Inetpub\wwwroot\devexternal\index.php(425): render_node(Array)
+#3 {main}
+  thrown in C:\Inetpub\wwwroot\devexternal\templates\node--tours.php on line 25
