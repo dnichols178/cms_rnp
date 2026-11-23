@@ -130,7 +130,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'ajax_upload' && $_SERVER['REQ
     }
 
     $clean_name = preg_replace('/[^a-zA-Z0-9_\.-]/', '_', pathinfo($up['name'], PATHINFO_FILENAME));
-    $new_filename = sprintf('%s.%s', $clean_name, $ext);
+        $new_filename = sprintf('%s.%s', $clean_name, $ext);
     $dest = $dest_dir . $new_filename;
 
     if (move_uploaded_file($up['tmp_name'], $dest)) {
@@ -153,11 +153,13 @@ if (isset($_GET['action']) && $_GET['action'] === 'ajax_upload' && $_SERVER['REQ
 }
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : null;
+
 if ($id === 1) {
-	set_flash('error', 'Homepage is system-protected and cannot be edited via the content editor. Homepage content can be added in blocks.');
-	header('Location: ' . base_path('admin/nodes.php'));
-	exit;
+    set_flash('error', 'Homepage is system-protected and cannot be edited via the content editor. Homepage content can be added in blocks.');
+    header('Location: ' . base_path('admin/nodes.php'));
+    exit;
 }
+
 $node = null;
 
 if ($id) {
@@ -201,6 +203,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $title = trim($_POST['title'] ?? '');
     $custom_data = $node['fields_data'] ?? [];
+    $allowed_exts = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'csv', 'zip', 'mp4'];
 
     // Process all configured fields in schema
     foreach ($content_type['fields_schema'] as $f) {
@@ -225,28 +228,76 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 @mkdir($target_dir, 0755, true);
             }
 
-            $existing_ajax_val = trim((string)($_POST['custom_' . $fname] ?? ''));
+            $is_multi = !empty($f['multiple']);
 
-            // 1. If an AJAX upload already populated the hidden input, retain it (prevents duplicate write)
-            if ($existing_ajax_val !== '') {
-                $custom_data[$fname] = $existing_ajax_val;
-            }
-            // 2. Otherwise process fallback direct form POST upload if a new file was submitted
-            elseif (!empty($_FILES['custom_file_' . $fname]['name']) && $_FILES['custom_file_' . $fname]['error'] === UPLOAD_ERR_OK) {
-                $up = $_FILES['custom_file_' . $fname];
-                $ext = strtolower(pathinfo($up['name'], PATHINFO_EXTENSION));
-                $clean_name = preg_replace('/[^a-zA-Z0-9_\.-]/', '_', pathinfo($up['name'], PATHINFO_FILENAME));
-                $new_filename = sprintf('%s.%s', $clean_name, $ext);
-                $dest = $target_dir . $new_filename;
-                if (move_uploaded_file($up['tmp_name'], $dest)) {
-                    // Automatically resize raster images to 750px width
-                    if (preg_match('/\.(jpg|jpeg|png|webp|gif)$/i', $new_filename)) {
-                        resize_image_to_width($dest, 750);
+            if ($is_multi) {
+                // 1. Retain all AJAX-uploaded or previously saved file URLs
+                $raw_posted = $_POST['custom_' . $fname] ?? [];
+                $saved_files = [];
+                if (is_array($raw_posted)) {
+                    foreach ($raw_posted as $item_url) {
+                        $item_url = trim((string)$item_url);
+                        if ($item_url !== '') {
+                            $saved_files[] = $item_url;
+                        }
                     }
-                    $custom_data[$fname] = base_path('uploads/' . $subfolder . '/' . $new_filename);
+                } elseif (is_string($raw_posted) && trim($raw_posted) !== '') {
+                    $saved_files[] = trim($raw_posted);
                 }
+
+                // 2. Process fallback direct POST multi-file uploads
+                $file_key = 'custom_file_' . $fname;
+                if (!empty($_FILES[$file_key]['name']) && is_array($_FILES[$file_key]['name'])) {
+                    $file_count = count($_FILES[$file_key]['name']);
+                    for ($i = 0; $i < $file_count; $i++) {
+                        if (($_FILES[$file_key]['error'][$i] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
+                            $orig_name = $_FILES[$file_key]['name'][$i];
+                            $tmp_name  = $_FILES[$file_key]['tmp_name'][$i];
+                            $ext = strtolower(pathinfo($orig_name, PATHINFO_EXTENSION));
+                            if (!in_array($ext, $allowed_exts, true)) {
+                                continue;
+                            }
+                            $clean_name = preg_replace('/[^a-zA-Z0-9_\.-]/', '_', pathinfo($orig_name, PATHINFO_FILENAME));
+                            $new_filename = sprintf('%s.%s', $clean_name, $ext);
+                            $dest = $target_dir . $new_filename;
+
+                            if (move_uploaded_file($tmp_name, $dest)) {
+                                if (preg_match('/\.(jpg|jpeg|png|webp|gif)$/i', $new_filename)) {
+                                    resize_image_to_width($dest, 750);
+                                }
+                                $saved_files[] = base_path('uploads/' . $subfolder . '/' . $new_filename);
+                            }
+                        }
+                    }
+                }
+
+                $custom_data[$fname] = array_values(array_unique($saved_files));
             } else {
-                $custom_data[$fname] = '';
+                $existing_ajax_val = trim((string)($_POST['custom_' . $fname] ?? ''));
+
+                // 1. If an AJAX upload already populated the hidden input, retain it (prevents duplicate write)
+                if ($existing_ajax_val !== '') {
+                    $custom_data[$fname] = $existing_ajax_val;
+                }
+                // 2. Otherwise process fallback direct form POST upload if a new file was submitted
+                elseif (!empty($_FILES['custom_file_' . $fname]['name']) && $_FILES['custom_file_' . $fname]['error'] === UPLOAD_ERR_OK) {
+                    $up = $_FILES['custom_file_' . $fname];
+                    $ext = strtolower(pathinfo($up['name'], PATHINFO_EXTENSION));
+                    if (in_array($ext, $allowed_exts, true)) {
+                        $clean_name = preg_replace('/[^a-zA-Z0-9_\.-]/', '_', pathinfo($up['name'], PATHINFO_FILENAME));
+                        $new_filename = sprintf('%s_%s.%s', $clean_name, bin2hex(random_bytes(3)), $ext);
+                        $dest = $target_dir . $new_filename;
+                        if (move_uploaded_file($up['tmp_name'], $dest)) {
+                            // Automatically resize raster images to 750px width
+                            if (preg_match('/\.(jpg|jpeg|png|webp|gif)$/i', $new_filename)) {
+                                resize_image_to_width($dest, 750);
+                            }
+                            $custom_data[$fname] = base_path('uploads/' . $subfolder . '/' . $new_filename);
+                        }
+                    }
+                } else {
+                    $custom_data[$fname] = '';
+                }
             }
         } elseif ($ftype === 'boolean') {
             $custom_data[$fname] = isset($_POST['custom_' . $fname]) ? 1 : 0;
@@ -474,31 +525,100 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     </label>
 
                                     <?php if ($ftype === 'image' || $ftype === 'file'): ?>
-                                        <?php $upload_subfolder = !empty($field['upload_dir']) ? $field['upload_dir'] : 'files'; ?>
-                                        <!-- Dedicated AJAX Upload Container with Visual Feedback -->
-                                        <input type="hidden" name="custom_<?= htmlspecialchars($fname) ?>" id="val_<?= htmlspecialchars($fname) ?>" value="<?= htmlspecialchars((string)$val) ?>">
-                                        <div class="upload-field-container" id="container_<?= htmlspecialchars($fname) ?>">
-                                            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                                                <input type="file" 
-                                                       id="file_input_<?= htmlspecialchars($fname) ?>" 
-                                                       name="custom_file_<?= htmlspecialchars($fname) ?>" 
-                                                       style="flex: 1; min-width: 200px; padding: 6px; font-size: 0.88rem; background: #fff; border: 1px solid #cbd5e1; border-radius: 4px;"
-                                                       <?= (empty($val) ? $req_attr : '') ?>
-                                                       onchange="handleFileSelected('<?= htmlspecialchars($fname) ?>')">
-                                                
-                                                <button type="button" 
-                                                        id="btn_upload_<?= htmlspecialchars($fname) ?>" 
-                                                        class="btn-primary" 
-                                                        style="padding: 7px 16px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px;"
-                                                        onclick="triggerAjaxUpload('<?= htmlspecialchars($fname) ?>', '<?= htmlspecialchars($ftype) ?>', '<?= htmlspecialchars($upload_subfolder) ?>')">
-                                                    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                                                    </svg>
-                                                    Upload
-                                                </button>
-                                            </div>
+                                        <?php
+                                            $upload_subfolder = !empty($field['upload_dir']) ? $field['upload_dir'] : 'files';
+                                            $is_multi = !empty($field['multiple']);
+                                        ?>
 
-                                            <!-- Upload Progress Bar -->
+                                        <?php if ($is_multi): ?>
+                                            <?php
+                                                $multi_vals = is_array($val) ? $val : (trim((string)$val) !== '' ? [trim((string)$val)] : []);
+                                            ?>
+                                            <!-- Multi-File AJAX Upload Container -->
+                                            <div class="upload-field-container" id="container_<?= htmlspecialchars($fname) ?>">
+                                                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                                                    <input type="file"
+                                                           id="file_input_<?= htmlspecialchars($fname) ?>"
+                                                           name="custom_file_<?= htmlspecialchars($fname) ?>[]"
+                                                           multiple
+                                                           style="flex: 1; min-width: 200px; padding: 6px; font-size: 0.88rem; background: #fff; border: 1px solid #cbd5e1; border-radius: 4px;"
+                                                           <?= (empty($multi_vals) ? $req_attr : '') ?>
+                                                           onchange="handleFileSelected('<?= htmlspecialchars($fname) ?>')">
+
+                                                    <button type="button"
+                                                            id="btn_upload_<?= htmlspecialchars($fname) ?>"
+                                                            class="btn-primary"
+                                                            style="padding: 7px 16px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px;"
+                                                            onclick="triggerMultiAjaxUpload('<?= htmlspecialchars($fname) ?>', '<?= htmlspecialchars($ftype) ?>', '<?= htmlspecialchars($upload_subfolder) ?>')">
+                                                        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                                        </svg>
+                                                        Upload File(s)
+                                                    </button>
+                                                </div>
+
+                                                <!-- Upload Progress Bar -->
+                                                <div id="progress_wrap_<?= htmlspecialchars($fname) ?>" style="display: none; margin-top: 10px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px;">
+                                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 0.8rem; font-weight: 600; color: #0b2545;">
+                                                        <span id="progress_status_<?= htmlspecialchars($fname) ?>">Uploading...</span>
+                                                        <span id="progress_pct_<?= htmlspecialchars($fname) ?>">0%</span>
+                                                    </div>
+                                                    <div style="width: 100%; height: 8px; background: #e2e8f0; border-radius: 999px; overflow: hidden;">
+                                                        <div id="progress_bar_<?= htmlspecialchars($fname) ?>" style="width: 0%; height: 100%; background: #0b2545; transition: width 0.15s ease;"></div>
+                                                    </div>
+                                                </div>
+
+                                                <div id="feedback_<?= htmlspecialchars($fname) ?>" style="margin-top: 10px; flex-direction: column; gap: 8px; display: <?= empty($multi_vals) ? 'none' : 'flex' ?>;">
+                                                </div>
+
+                                                <div id="feedback_<?= htmlspecialchars($fname) ?>" style="margin-top: 10px; flex-direction: column; gap: 8px; display: <?= empty($multi_vals) ? 'none' : 'flex' ?>;">
+                                                    <?php foreach ($multi_vals as $file_url): ?>
+                                                        <?php if (trim((string)$file_url) === '') continue; ?>
+                                                        <div class="upload-success-badge">
+                                                            <input type="hidden" name="custom_<?= htmlspecialchars($fname) ?>[]" value="<?= htmlspecialchars((string)$file_url) ?>">
+                                                            <?php if ($ftype === 'image'): ?>
+                                                                <img src="<?= htmlspecialchars((string)$file_url) ?>" alt="" style="max-height: 48px; max-width: 70px; object-fit: cover; border: 1px solid #cbd5e1; border-radius: 4px; background: #fff;">
+                                                            <?php else: ?>
+                                                                <span style="font-size: 1.25rem;">📄</span>
+                                                            <?php endif; ?>
+                                                            <div style="flex: 1; min-width: 0;">
+                                                                <div style="font-size: 0.84rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                                                    <a href="<?= htmlspecialchars((string)$file_url) ?>" target="_blank" style="color: #0b2545; font-weight: 600; text-decoration: underline;">
+                                                                        <?= htmlspecialchars(basename((string)$file_url)) ?>
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                            <button type="button" class="btn-secondary" style="font-size: 0.75rem; padding: 3px 8px; color: #b91c1c;" onclick="removeMultiUploadedItem(this, '<?= htmlspecialchars($fname) ?>')">Remove</button>
+                                                        </div>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            </div>
+                                        <?php else: ?>
+                                            <?php $single_val = is_array($val) ? (string)($val[0] ?? '') : (string)$val; ?>
+                                            <!-- Single-File AJAX Upload Container -->
+                                            <input type="hidden" name="custom_<?= htmlspecialchars($fname) ?>" id="val_<?= htmlspecialchars($fname) ?>" value="<?= htmlspecialchars($single_val) ?>">
+                                            <div class="upload-field-container" id="container_<?= htmlspecialchars($fname) ?>">
+                                                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                                                    <input type="file" 
+                                                           id="file_input_<?= htmlspecialchars($fname) ?>" 
+                                                           name="custom_file_<?= htmlspecialchars($fname) ?>" 
+                                                           style="flex: 1; min-width: 200px; padding: 6px; font-size: 0.88rem; background: #fff; border: 1px solid #cbd5e1; border-radius: 4px;"
+                                                           <?= ($single_val === '' ? $req_attr : '') ?>
+                                                           onchange="handleFileSelected('<?= htmlspecialchars($fname) ?>')">
+                                                    
+                                                    <button type="button" 
+                                                            id="btn_upload_<?= htmlspecialchars($fname) ?>" 
+                                                            class="btn-primary" 
+                                                            style="padding: 7px 16px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px;"
+                                                            onclick="triggerAjaxUpload('<?= htmlspecialchars($fname) ?>', '<?= htmlspecialchars($ftype) ?>', '<?= htmlspecialchars($upload_subfolder) ?>')">
+                                                        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                                        </svg>
+                                                        Upload
+                                                    </button>
+                                                </div>
+
+                                             <!-- Upload Progress Bar -->
                                             <div id="progress_wrap_<?= htmlspecialchars($fname) ?>" style="display: none; margin-top: 10px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px;">
                                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 0.8rem; font-weight: 600; color: #0b2545;">
                                                     <span id="progress_status_<?= htmlspecialchars($fname) ?>">Uploading...</span>
@@ -509,30 +629,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                 </div>
                                             </div>
 
-                                            <!-- Live Feedback & Preview Container -->
-                                            <div id="feedback_<?= htmlspecialchars($fname) ?>" style="margin-top: 10px; <?= empty($val) ? 'display: none;' : '' ?>">
-                                                <?php if (!empty($val)): ?>
-                                                    <div class="upload-success-badge">
-                                                        <?php if ($ftype === 'image'): ?>
-                                                            <img src="<?= htmlspecialchars((string)$val) ?>" alt="" style="max-height: 48px; max-width: 70px; object-fit: cover; border: 1px solid #cbd5e1; border-radius: 4px; background: #fff;">
-                                                        <?php else: ?>
-                                                            <span style="font-size: 1.25rem;">??</span>
-                                                        <?php endif; ?>
-                                                        <div style="flex: 1; min-width: 0;">
-                                                            <div style="color: #065f46; font-weight: 700; font-size: 0.85rem;">
-                                                                ? Current <?= $ftype === 'image' ? 'Image' : 'Document' ?>:
+                                                <!-- Live Feedback & Preview Container -->
+                                                <div id="feedback_<?= htmlspecialchars($fname) ?>" style="margin-top: 10px; <?= $single_val === '' ? 'display: none;' : '' ?>">
+                                                    <?php if ($single_val !== ''): ?>
+                                                        <div class="upload-success-badge">
+                                                            <?php if ($ftype === 'image'): ?>
+                                                                <img src="<?= htmlspecialchars($single_val) ?>" alt="" style="max-height: 48px; max-width: 70px; object-fit: cover; border: 1px solid #cbd5e1; border-radius: 4px; background: #fff;">
+                                                            <?php else: ?>
+                                                                <span style="font-size: 1.25rem;">📄</span>
+                                                            <?php endif; ?>
+                                                            <div style="flex: 1; min-width: 0;">
+                                                                <div style="color: #065f46; font-weight: 700; font-size: 0.85rem;">
+                                                                    ✓ Current <?= $ftype === 'image' ? 'Image' : 'Document' ?>:
+                                                                </div>
+                                                                <div style="font-size: 0.82rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                                                    <a href="<?= htmlspecialchars($single_val) ?>" target="_blank" style="color: #0b2545; font-weight: 600; text-decoration: underline;">
+                                                                        <?= htmlspecialchars(basename($single_val)) ?>
+                                                                    </a>
+                                                                </div>
                                                             </div>
-                                                            <div style="font-size: 0.82rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                                                <a href="<?= htmlspecialchars((string)$val) ?>" target="_blank" style="color: #0b2545; font-weight: 600; text-decoration: underline;">
-                                                                    <?= htmlspecialchars(basename((string)$val)) ?>
-                                                                </a>
-                                                            </div>
+                                                            <button type="button" class="btn-secondary" style="font-size: 0.75rem; padding: 3px 8px; color: #b91c1c;" onclick="removeUploadedField('<?= htmlspecialchars($fname) ?>')">Remove</button>
                                                         </div>
-                                                        <button type="button" class="btn-secondary" style="font-size: 0.75rem; padding: 3px 8px; color: #b91c1c;" onclick="removeUploadedField('<?= htmlspecialchars($fname) ?>')">Remove</button>
-                                                    </div>
-                                                <?php endif; ?>
+                                                    <?php endif; ?>
+                                                </div>
                                             </div>
-                                        </div>
+                                        <?php endif; ?>
 
                                     <?php elseif ($ftype === 'video'): ?>
                                         <input type="url" 
@@ -709,7 +830,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         <option value=""><Main Menu (Top Level)></option>
                                         <?php foreach ($top_level_menu_items as $p_item): ?>
                                             <option value="<?= $p_item['id'] ?>" <?= ((int)($existing_menu_link['parent_id'] ?? 0) === (int)$p_item['id']) ? 'selected' : '' ?>>
-                                                ? <?= htmlspecialchars($p_item['title']) ?>
+                                                ↳ <?= htmlspecialchars($p_item['title']) ?>
                                             </option>
                                         <?php endforeach; ?>
                                     </select>
@@ -1030,14 +1151,68 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        function triggerAjaxUpload(fieldName, fieldType, uploadDir = 'files') {
+        function updateUploadProgress(fieldName, percent, statusText) {
+            const wrap = document.getElementById('progress_wrap_' + fieldName);
+            const bar = document.getElementById('progress_bar_' + fieldName);
+            const pct = document.getElementById('progress_pct_' + fieldName);
+            const status = document.getElementById('progress_status_' + fieldName);
+
+            if (!wrap) return;
+            const clamped = Math.max(0, Math.min(100, Math.round(percent)));
+            wrap.style.display = 'block';
+            if (bar) bar.style.width = clamped + '%';
+            if (pct) pct.textContent = clamped + '%';
+            if (status && statusText) status.textContent = statusText;
+        }
+
+        function hideUploadProgress(fieldName, delayMs = 600) {
+            const wrap = document.getElementById('progress_wrap_' + fieldName);
+            const bar = document.getElementById('progress_bar_' + fieldName);
+            const pct = document.getElementById('progress_pct_' + fieldName);
+            if (!wrap) return;
+
+            setTimeout(() => {
+                wrap.style.display = 'none';
+                if (bar) bar.style.width = '0%';
+                if (pct) pct.textContent = '0%';
+            }, delayMs);
+        }
+
+        function uploadFileWithProgress(formData, onProgress) {
+            return new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', '<?= base_path("admin/node_edit.php?action=ajax_upload") ?>', true);
+
+                xhr.upload.addEventListener('progress', function(e) {
+                    if (e.lengthComputable && typeof onProgress === 'function') {
+                        onProgress(e.loaded, e.total);
+                    }
+                });
+
+                xhr.onload = function() {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        try {
+                            resolve(JSON.parse(xhr.responseText));
+                        } catch (err) {
+                            reject(new Error('Invalid JSON response from server.'));
+                        }
+                    } else {
+                        reject(new Error('HTTP ' + xhr.status + ' upload error.'));
+                    }
+                };
+
+                xhr.onerror = function() {
+                    reject(new Error('Network error during file upload.'));
+                };
+
+                xhr.send(formData);
+            });
+        }
+
+        async function triggerAjaxUpload(fieldName, fieldType, uploadDir = 'files') {
             const fileInput = document.getElementById('file_input_' + fieldName);
             const uploadBtn = document.getElementById('btn_upload_' + fieldName);
             const hiddenVal = document.getElementById('val_' + fieldName);
-            const progressWrap = document.getElementById('progress_wrap_' + fieldName);
-            const progressBar = document.getElementById('progress_bar_' + fieldName);
-            const progressPct = document.getElementById('progress_pct_' + fieldName);
-            const progressStatus = document.getElementById('progress_status_' + fieldName);
 
             if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
                 alert('Please choose a file to upload first.');
@@ -1054,99 +1229,139 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             const origContent = uploadBtn.innerHTML;
             uploadBtn.disabled = true;
             uploadBtn.innerHTML = 'Uploading...';
+            updateUploadProgress(fieldName, 0, `Uploading ${file.name}...`);
 
-            if (progressWrap) {
-                progressWrap.style.display = 'block';
-                progressBar.style.width = '0%';
-                progressBar.style.background = '#0b2545';
-                progressPct.textContent = '0%';
-                progressStatus.textContent = 'Starting upload...';
-            }
+            try {
+                const data = await uploadFileWithProgress(formData, (loaded, total) => {
+                    const percent = total > 0 ? (loaded / total) * 100 : 0;
+                    updateUploadProgress(fieldName, percent, `Uploading ${file.name}...`);
+                });
 
-            const xhr = new XMLHttpRequest();
-            xhr.open('POST', '<?= base_path("admin/node_edit.php?action=ajax_upload") ?>', true);
+                if (data.success) {
+                    updateUploadProgress(fieldName, 100, 'Upload complete!');
+                    hiddenVal.value = data.url;
+                    fileInput.value = '';
 
-            xhr.upload.onprogress = function(e) {
-                if (e.lengthComputable && progressWrap) {
-                    const percent = Math.round((e.loaded / e.total) * 100);
-                    const loadedMB = (e.loaded / (1024 * 1024)).toFixed(1);
-                    const totalMB = (e.total / (1024 * 1024)).toFixed(1);
+                    const isImage = data.is_img || fieldType === 'image';
+                    const previewThumb = isImage 
+                        ? `<img src="${escapeHtml(data.url)}" alt="" style="max-height: 48px; max-width: 70px; object-fit: cover; border: 1px solid #cbd5e1; border-radius: 4px; background: #fff;">`
+                        : `<span style="font-size: 1.25rem;">📄</span>`;
 
-                    progressBar.style.width = percent + '%';
-                    progressPct.textContent = percent + '%';
+                    const feedbackContainer = document.getElementById('feedback_' + fieldName);
+                    feedbackContainer.style.display = 'block';
+                    feedbackContainer.innerHTML = `
+                        <div class="upload-success-badge">
+                            ${previewThumb}
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="color: #065f46; font-weight: 700; font-size: 0.85rem;">
+                                    ✓ ${isImage ? 'Image' : 'Document'} uploaded successfully!
+                                </div>
+                                <div style="font-size: 0.82rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                    <a href="${escapeHtml(data.url)}" target="_blank" style="color: #0b2545; font-weight: 600; text-decoration: underline;">
+                                        ${escapeHtml(data.filename)}
+                                    </a>
+                                </div>
+                            </div>
+                            <button type="button" class="btn-secondary" style="font-size: 0.75rem; padding: 3px 8px; color: #b91c1c;" onclick="removeUploadedField('${escapeHtml(fieldName)}')">Remove</button>
+                        </div>
+                    `;
 
-                    if (percent < 100) {
-                        progressStatus.textContent = `Uploading (${loadedMB} MB / ${totalMB} MB)...`;
-                    } else {
-                        progressStatus.textContent = 'Processing file on server...';
-                        progressBar.style.background = '#10b981';
-                    }
+                    fileInput.removeAttribute('required');
+                    appendMediaDrawerPill(data.filename, data.url, isImage);
+                    hideUploadProgress(fieldName, 800);
+                } else {
+                    hideUploadProgress(fieldName, 0);
+                    alert('Upload failed: ' + (data.error || 'Server error occurred.'));
                 }
-            };
-
-            xhr.onload = function() {
+            } catch (err) {
+                hideUploadProgress(fieldName, 0);
+                alert('Upload error: ' + err.message);
+            } finally {
                 uploadBtn.disabled = false;
                 uploadBtn.innerHTML = origContent;
                 uploadBtn.style.boxShadow = 'none';
-                if (progressWrap) progressWrap.style.display = 'none';
+            }
+        }
 
-                if (xhr.status >= 200 && xhr.status < 300) {
-                    let data;
-                    try {
-                        data = JSON.parse(xhr.responseText);
-                    } catch (err) {
-                        alert('Upload failed: Invalid JSON response from server. Check PHP size limits.');
-                        return;
-                    }
+        async function triggerMultiAjaxUpload(fieldName, fieldType, uploadDir = 'files') {
+            const fileInput = document.getElementById('file_input_' + fieldName);
+            const uploadBtn = document.getElementById('btn_upload_' + fieldName);
+            const feedbackContainer = document.getElementById('feedback_' + fieldName);
+
+            if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+                alert('Please choose one or more files to upload first.');
+                fileInput.focus();
+                return;
+            }
+
+            const files = Array.from(fileInput.files);
+            const totalBytes = files.reduce((sum, f) => sum + (f.size || 0), 0);
+            let completedBytes = 0;
+
+            const origContent = uploadBtn.innerHTML;
+            uploadBtn.disabled = true;
+            updateUploadProgress(fieldName, 0, `Starting upload of ${files.length} file${files.length === 1 ? '' : 's'}...`);
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const fileLabel = `Uploading ${i + 1} of ${files.length}: ${file.name}`;
+                uploadBtn.innerHTML = `Uploading ${i + 1}/${files.length}...`;
+
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('csrf_token', csrfTokenVal);
+                formData.append('upload_dir', uploadDir);
+
+                try {
+                    const data = await uploadFileWithProgress(formData, (loaded, total) => {
+                        const overallPct = totalBytes > 0
+                            ? ((completedBytes + Math.min(loaded, file.size || total)) / totalBytes) * 100
+                            : (((i + (total > 0 ? loaded / total : 0)) / files.length) * 100);
+                        updateUploadProgress(fieldName, overallPct, fileLabel);
+                    });
+
+                    completedBytes += (file.size || 0);
 
                     if (data.success) {
-                        hiddenVal.value = data.url;
-
-                        // Clear file input so form submission won't re-upload duplicate file
-                        fileInput.value = '';
-
                         const isImage = data.is_img || fieldType === 'image';
-                        const previewThumb = isImage 
-                            ? `<img src="${data.url}" alt="" style="max-height: 48px; max-width: 70px; object-fit: cover; border: 1px solid #cbd5e1; border-radius: 4px; background: #fff;">`
-                            : `<span style="font-size: 1.25rem;">??</span>`;
+                        const previewThumb = isImage
+                            ? `<img src="${escapeHtml(data.url)}" alt="" style="max-height: 48px; max-width: 70px; object-fit: cover; border: 1px solid #cbd5e1; border-radius: 4px; background: #fff;">`
+                            : `<span style="font-size: 1.25rem;">📄</span>`;
 
-                        const feedbackContainer = document.getElementById('feedback_' + fieldName);
-                        feedbackContainer.style.display = 'block';
-                        feedbackContainer.innerHTML = `
-                            <div class="upload-success-badge">
-                                ${previewThumb}
-                                <div style="flex: 1; min-width: 0;">
-                                    <div style="color: #065f46; font-weight: 700; font-size: 0.85rem;">
-                                        ? ${isImage ? 'Image' : 'Document'} uploaded successfully!
-                                    </div>
-                                    <div style="font-size: 0.82rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                        <a href="${data.url}" target="_blank" style="color: #0b2545; font-weight: 600; text-decoration: underline;">
-                                            ${data.filename}
-                                        </a>
-                                    </div>
+                        feedbackContainer.style.display = 'flex';
+                        const row = document.createElement('div');
+                        row.className = 'upload-success-badge';
+                        row.innerHTML = `
+                            <input type="hidden" name="custom_${escapeHtml(fieldName)}[]" value="${escapeHtml(data.url)}">
+                            ${previewThumb}
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="color: #065f46; font-weight: 700; font-size: 0.78rem;">✓ Uploaded</div>
+                                <div style="font-size: 0.84rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                    <a href="${escapeHtml(data.url)}" target="_blank" style="color: #0b2545; font-weight: 600; text-decoration: underline;">
+                                        ${escapeHtml(data.filename)}
+                                    </a>
                                 </div>
-                                <button type="button" class="btn-secondary" style="font-size: 0.75rem; padding: 3px 8px; color: #b91c1c;" onclick="removeUploadedField('${fieldName}')">Remove</button>
                             </div>
+                            <button type="button" class="btn-secondary" style="font-size: 0.75rem; padding: 3px 8px; color: #b91c1c;" onclick="removeMultiUploadedItem(this, '${escapeHtml(fieldName)}')">Remove</button>
                         `;
-
+                        feedbackContainer.appendChild(row);
                         fileInput.removeAttribute('required');
                         appendMediaDrawerPill(data.filename, data.url, isImage);
                     } else {
-                        alert('Upload failed: ' + (data.error || 'Server error occurred.'));
+                        alert(`Failed to upload ${file.name}: ` + (data.error || 'Server error occurred.'));
                     }
-                } else {
-                    alert(`Upload failed with HTTP status ${xhr.status}. The file may exceed server limits.`);
+                } catch (err) {
+                    alert(`Network error uploading ${file.name}: ` + err.message);
                 }
-            };
+            }
 
-            xhr.onerror = function() {
-                uploadBtn.disabled = false;
-                uploadBtn.innerHTML = origContent;
-                if (progressWrap) progressWrap.style.display = 'none';
-                alert('Upload network error occurred.');
-            };
+            updateUploadProgress(fieldName, 100, `Finished uploading ${files.length} file${files.length === 1 ? '' : 's'}!`);
+            hideUploadProgress(fieldName, 900);
 
-            xhr.send(formData);
+            fileInput.value = '';
+            uploadBtn.disabled = false;
+            uploadBtn.innerHTML = origContent;
+            uploadBtn.style.boxShadow = 'none';
         }
 
         function removeUploadedField(fieldName) {
@@ -1166,6 +1381,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 confirmText: 'Remove',
                 danger: true
             });
+        }
+
+        function removeMultiUploadedItem(btn, fieldName) {
+            const badge = btn.closest('.upload-success-badge');
+            if (badge) badge.remove();
+            const feedbackContainer = document.getElementById('feedback_' + fieldName);
+            if (feedbackContainer && feedbackContainer.children.length === 0) {
+                feedbackContainer.style.display = 'none';
+            }
         }
 
         function appendMediaDrawerPill(filename, url, isImg) {
