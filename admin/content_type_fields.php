@@ -35,6 +35,7 @@ foreach ($all_content_types as $ct) {
                 'label_display' => $f['label_display'] ?? 'inline',
                 'help_text'     => $f['help_text'] ?? '',
                 'required'      => !empty($f['required']) ? 1 : 0,
+                'multiple'      => !empty($f['multiple']) ? 1 : 0,
                 'options'       => $f['options'] ?? [],
                 'upload_dir'    => $f['upload_dir'] ?? '',
                 'source_type'   => $ct['name']
@@ -88,6 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $label_display = trim($_POST['label_display'] ?? 'inline');
     $help_text     = trim($_POST['help_text'] ?? '');
     $is_required   = isset($_POST['is_required']) ? 1 : 0;
+    $is_multiple   = (($type === 'file' || $type === 'image') && isset($_POST['is_multiple'])) ? 1 : 0;
     $raw_options   = trim($_POST['options'] ?? '');
     $upload_dir    = '';
 
@@ -140,8 +142,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     $f['options']       = $parsed_options;
                     if ($type === 'file' || $type === 'image') {
                         $f['upload_dir'] = $upload_dir;
+                        $f['multiple']   = $is_multiple;
                     } else {
-                        unset($f['upload_dir']);
+                        unset($f['upload_dir'], $f['multiple']);
                     }
                     $found = true;
                     break;
@@ -196,6 +199,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
                 if ($type === 'file' || $type === 'image') {
                     $new_field['upload_dir'] = $upload_dir;
+                    $new_field['multiple']   = $is_multiple;
                 }
 
                 $schema[] = $new_field;
@@ -225,7 +229,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
         <main class="admin-main">
             <div style="font-size: 0.84rem; color: #64748b; margin-bottom: 8px;">
-                <a href="<?= base_path('admin/content_types.php') ?>" style="color: #0b2545; text-decoration: none;">&laquo; Content Types</a> &raquo;
+                <a href="<?= base_path('admin/content_types.php') ?>" style="color: #0b2545; text-decoration: none;">« Content Types</a> »
                 <span><?= htmlspecialchars($content_type['name']) ?></span>
             </div>
 
@@ -237,7 +241,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     </p>
                 </div>
                 <div style="display:flex; gap:10px;">
-                    <a href="<?= base_path('admin/pathauto.php') ?>" class="btn-secondary">URL Alias Patterns &raquo;</a>
+                    <a href="<?= base_path('admin/pathauto.php') ?>" class="btn-secondary">URL Alias Patterns »</a>
                     <button type="button" class="btn-primary" onclick="openAddModal()">+ Add Field</button>
                 </div>
             </div>
@@ -273,7 +277,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                 <td><span class="badge-req">Required</span></td>
                                 <td><code>hidden</code></td>
                                 <td style="text-align: center; color: #94a3b8; font-size: 0.8rem;">Top (Fixed)</td>
-                                <td style="text-align: right; color: #94a3b8; font-size: 0.82rem;">Core &bull; Locked</td>
+                                <td style="text-align: right; color: #94a3b8; font-size: 0.82rem;">Core • Locked</td>
                             </tr>
                         </tbody>
 
@@ -295,8 +299,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <code><?= htmlspecialchars($f['name']) ?></code> &bull; 
+                                        <code><?= htmlspecialchars($f['name']) ?></code> • 
                                         <span class="type-badge <?= $is_body ? 'type-badge-body' : '' ?>"><?= htmlspecialchars($f['type']) ?></span>
+                                        <?php if (!empty($f['multiple'])): ?>
+                                            <span class="type-badge" style="background:#e0f2fe; color:#0369a1; margin-left:4px;">Multiple</span>
+                                        <?php endif; ?>
                                         <input type="hidden" name="weight[<?= htmlspecialchars($f['name']) ?>]" class="field-weight-input" value="<?= $f_weight ?>">
                                     </td>
                                     <td>
@@ -312,7 +319,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                     <td style="text-align: right; white-space: nowrap;">
                                         <button type="button" class="btn-secondary" style="font-size:0.8rem; padding:4px 8px;" onclick='openEditModal(<?= json_encode($f) ?>)'>Edit</button>
                                         <a href="<?= base_path('admin/content_type_fields.php') ?>?type=<?= urlencode($type_key) ?>&action=delete&field=<?= urlencode($f['name']) ?>&csrf_token=<?= get_csrf_token() ?>" 
-                                           data-confirm="Remove field &quot;<?= htmlspecialchars($f['label']) ?>&quot;?" 
+                                           data-confirm="Remove field "<?= htmlspecialchars($f['label']) ?>"?" 
                                            data-confirm-title="Remove Field"
                                            data-confirm-btn="Delete"
                                            style="color:#c00; font-size:0.8rem; margin-left:8px; text-decoration:none;">Delete</a>
@@ -338,7 +345,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         <div class="modal-card">
             <div class="modal-header">
                 <h3 id="modalTitle">Field Configuration</h3>
-                <button type="button" class="modal-close-btn" onclick="closeFieldModal()">&times;</button>
+                <button type="button" class="modal-close-btn" onclick="closeFieldModal()">×</button>
             </div>
             <form method="POST" id="fieldModalForm" onsubmit="prepareModalSubmit()">
                 <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
@@ -366,7 +373,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                             <option value="">-- Choose an existing field --</option>
                             <?php foreach ($existing_fields_pool as $ex): ?>
                                 <option value="<?= htmlspecialchars($ex['name']) ?>">
-                                    <?= htmlspecialchars($ex['label']) ?> (<code><?= htmlspecialchars($ex['name']) ?></code> &bull; <?= htmlspecialchars(strtoupper($ex['type'])) ?> from <?= htmlspecialchars($ex['source_type']) ?>)
+                                    <?= htmlspecialchars($ex['label']) ?> (<code><?= htmlspecialchars($ex['name']) ?></code> • <?= htmlspecialchars(strtoupper($ex['type'])) ?> from <?= htmlspecialchars($ex['source_type']) ?>)
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -407,9 +414,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         <small>Target folder inside <code>/uploads/</code>. Created automatically if it does not exist. Defaults to <code>files</code>.</small>
                     </div>
 
+                    <div class="form-row" id="modal_multiple_row" style="display: none;">
+                        <label style="font-weight: normal; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" name="is_multiple" id="modal_is_multiple" value="1">
+                            <strong>Allow multiple file uploads</strong>
+                        </label>
+                        <small>Editors can attach and manage multiple files in this field.</small>
+                    </div>
+
                     <div class="form-row" id="modal_options_row" style="display: none;">
                         <label>Allowed Values (One per line: key|Label)</label>
-                        <textarea name="options" id="modal_options" rows="3" placeholder="alpha|Alpha Facility&#10;beta|Beta Facility"></textarea>
+                        <textarea name="options" id="modal_options" rows="3" placeholder="alpha|Alpha Facility
+beta|Beta Facility"></textarea>
                     </div>
 
                     <div class="form-row">
@@ -417,7 +433,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         <select name="label_display" id="modal_label_display">
                             <option value="inline">Inline (Label: Value)</option>
                             <option value="above">Above (Label above value)</option>
-                            <option value="hidden">&lt;Hidden&gt;</option>
+                            <option value="hidden"><Hidden></option>
                         </select>
                     </div>
 
@@ -470,6 +486,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             document.getElementById('modal_options').value = '';
             document.getElementById('modal_upload_dir').value = '';
             document.getElementById('modal_is_required').checked = false;
+            document.getElementById('modal_is_multiple').checked = false;
 
             handleTypeChange('image');
             document.getElementById('fieldModalOverlay').classList.add('active');
@@ -496,6 +513,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             document.getElementById('modal_label_display').value = field.label_display || 'inline';
             document.getElementById('modal_help_text').value = field.help_text || '';
             document.getElementById('modal_is_required').checked = !!field.required;
+            document.getElementById('modal_is_multiple').checked = !!field.multiple;
 
             // Lock type change if it's the body field
             const isBody = (field.name === 'body');
@@ -531,6 +549,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 document.getElementById('modal_field_name').value = '';
                 document.getElementById('modal_field_type').value = 'image';
                 document.getElementById('modal_upload_dir').value = '';
+                document.getElementById('modal_is_multiple').checked = false;
                 document.getElementById('existing_field_select').value = '';
                 handleTypeChange('image');
             } else {
@@ -557,6 +576,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             document.getElementById('modal_label_display').value = f.label_display || 'inline';
             document.getElementById('modal_help_text').value = f.help_text || '';
             document.getElementById('modal_is_required').checked = !!f.required;
+            document.getElementById('modal_is_multiple').checked = !!f.multiple;
 
             let optsStr = '';
             if (f.options && typeof f.options === 'object') {
@@ -582,8 +602,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         }
 
         function handleTypeChange(type) {
+            const isUpload = (type === 'file' || type === 'image');
             document.getElementById('modal_options_row').style.display = (type === 'select') ? 'block' : 'none';
-            document.getElementById('modal_upload_dir_row').style.display = (type === 'file' || type === 'image') ? 'block' : 'none';
+            document.getElementById('modal_upload_dir_row').style.display = isUpload ? 'block' : 'none';
+            document.getElementById('modal_multiple_row').style.display = isUpload ? 'block' : 'none';
             if (type === 'body') {
                 if (document.getElementById('modal_mode').value === 'add') {
                     document.getElementById('modal_field_name').value = 'body';
