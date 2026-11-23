@@ -761,32 +761,37 @@ function format_field_value(array $field, mixed $val): string {
         case 'image':
             return '<img src="' . htmlspecialchars((string)$val) . '" alt="" style="max-width: 100%; height: auto; border-radius: 4px; border: 1px solid #e2e8f0; margin-top: 5px;">';
 
-        case 'video':
-            $raw_val = trim((string)$val);
-            if ($raw_val === '') {
+        case 'image':
+            $images = is_array($val) ? $val : [trim((string)$val)];
+            $images = array_values(array_filter(array_map(static fn($u) => trim((string)$u), $images)));
+            if (empty($images)) {
                 return '';
             }
-            $yt_id = get_youtube_id($raw_val);
-            if ($yt_id) {
-                return '<div class="video-embed-wrapper" style="position:relative; padding-bottom:56.25%; height:0; overflow:hidden; max-width:100%; border-radius:6px; margin-top:8px; box-shadow:0 2px 8px rgba(0,0,0,0.1);">'
-                     . '<iframe src="https://www.youtube-nocookie.com/embed/' . htmlspecialchars($yt_id) . '" '
-                     . 'style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;" '
-                     . 'allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" '
-                     . 'allowfullscreen '
-                     . 'loading="lazy" '
-                     . 'title="' . htmlspecialchars($field['label'] ?? 'Video') . '">'
-                     . '</iframe>'
-                     . '</div>';
+            $out = [];
+            foreach ($images as $img_url) {
+                $out[] = '<img src="' . htmlspecialchars($img_url) . '" alt="" style="max-width: 100%; height: auto; border-radius: 4px; border: 1px solid #e2e8f0; margin-top: 5px;">';
             }
-            // Fallback for non-YouTube URLs: render as clickable link
-            if (filter_var($raw_val, FILTER_VALIDATE_URL)) {
-                return '<a href="' . htmlspecialchars($raw_val) . '" target="_blank" rel="noopener noreferrer">' . htmlspecialchars($raw_val) . '</a>';
-            }
-            return htmlspecialchars($raw_val);
+            return count($out) > 1
+                ? '<div class="field-image-gallery" style="display:flex; flex-wrap:wrap; gap:12px;">' . implode('', $out) . '</div>'
+                : $out[0];
             
         case 'file':
-            $filename = basename((string)$val);
-            return '<a class="file-link btn-download" href="' . htmlspecialchars((string)$val) . '" target="_blank">' . htmlspecialchars($filename) . '</a>';
+            $files = is_array($val) ? $val : [trim((string)$val)];
+            $files = array_values(array_filter(array_map(static fn($u) => trim((string)$u), $files)));
+            if (empty($files)) {
+                return '';
+            }
+            $links = [];
+            foreach ($files as $file_url) {
+                $filename = basename($file_url);
+                $links[] = '<a class="file-link btn-download" href="' . htmlspecialchars($file_url) . '" target="_blank">' . htmlspecialchars($filename) . '</a>';
+            }
+            if (count($links) === 1) {
+                return $links[0];
+            }
+            return '<ul class="field-file-list" style="list-style:none; padding:0; margin:6px 0 0 0; display:flex; flex-direction:column; gap:8px;"><li>'
+                 . implode('</li><li>', $links)
+                 . '</li></ul>';
 
         case 'date':
             return '<time>' . date('F j, Y', strtotime((string)$val)) . '</time>';
