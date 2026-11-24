@@ -535,9 +535,72 @@ $transfers = $db->query('
     <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
     <input type="hidden" name="create_transfer" value="1">
 
+                    <div class="form-row" style="margin-bottom: 14px;">
+                    <label>Package Title *</label>
+                    <input type="text" name="title" required placeholder="e.g. C-400 Remediation Phase II Design Dossier">
+                </div>
+
+                <div class="form-row" style="margin-bottom: 14px;">
+                    <label>Description / Notes for Recipients (Optional)</label>
+                    <textarea name="description" rows="2" placeholder="Brief briefing notes, clearance instructions, or contents summary..."></textarea>
+                </div>
+
+                <div class="form-row" style="margin-bottom: 14px;">
+                    <label>Authorized Recipient Email(s) *</label>
+                    <textarea name="recipient_emails" rows="3" required placeholder="Enter one or multiple email addresses (separated by commas or new lines)&#10;e.g. engineer@partner.gov, contractor@cleanupsite.com"></textarea>
+                    <small style="color: #64748b; font-size: 0.78rem;">Each recipient will verify independently and can deactivate their own access upon download.</small>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+                    <div class="form-row">
+                        <label>Identity Verification Mode *</label>
+                        <select name="auth_mode" style="width: 100%;">
+                            <option value="direct" selected>Direct Email Match (Faster Access)</option>
+                            <option value="otp">Email + 4-Digit One-Time PIN (Higher Security)</option>
+                        </select>
+                        <small style="color: #64748b; font-size: 0.78rem;">OTP generates and emails an instant 4-digit PIN upon arrival.</small>
+                    </div>
+
     <div id="uploadErrorBanner" class="upload-error-banner"></div>
 
-    <!-- ... existing title, description, recipient_emails, auth_mode, expire_days fields ... -->
+    <div class="form-row" style="margin-bottom: 14px;">
+                    <label>Package Title *</label>
+                    <input type="text" name="title" required placeholder="e.g. C-400 Remediation Phase II Design Dossier">
+                </div>
+
+                <div class="form-row" style="margin-bottom: 14px;">
+                    <label>Description / Notes for Recipients (Optional)</label>
+                    <textarea name="description" rows="2" placeholder="Brief briefing notes, clearance instructions, or contents summary..."></textarea>
+                </div>
+
+                <div class="form-row" style="margin-bottom: 14px;">
+                    <label>Authorized Recipient Email(s) *</label>
+                    <textarea name="recipient_emails" rows="3" required placeholder="Enter one or multiple email addresses (separated by commas or new lines)&#10;e.g. engineer@partner.gov, contractor@cleanupsite.com"></textarea>
+                    <small style="color: #64748b; font-size: 0.78rem;">Each recipient will verify independently and can deactivate their own access upon download.</small>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+                    <div class="form-row">
+                        <label>Identity Verification Mode *</label>
+                        <select name="auth_mode" style="width: 100%;">
+                            <option value="direct" selected>Direct Email Match (Faster Access)</option>
+                            <option value="otp">Email + 4-Digit One-Time PIN (Higher Security)</option>
+                        </select>
+                        <small style="color: #64748b; font-size: 0.78rem;">OTP generates and emails an instant 4-digit PIN upon arrival.</small>
+                    </div>
+
+                    <div class="form-row">
+                        <label>Expiration Window</label>
+                        <select name="expire_days" style="width: 100%;">
+                            <option value="0">No Expiration (Never)</option>
+                            <option value="1">24 Hours</option>
+                            <option value="3">3 Days</option>
+                            <option value="7" selected>7 Days</option>
+                            <option value="14">14 Days</option>
+                            <option value="30">30 Days</option>
+                        </select>
+                    </div>
+                </div>
 
     <div class="form-row" style="margin-bottom: 16px;">
         <label>Select Document File * (Stored in protected /vault/)</label>
@@ -561,7 +624,13 @@ $transfers = $db->query('
         </div>
     </div>
 
-    <!-- ... existing notify_recipient checkbox ... -->
+    <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px 14px; border-radius: 5px; margin-bottom: 20px;">
+                    <label style="display: flex; align-items: center; gap: 8px; font-weight: 600; color: #0b2545; cursor: pointer; font-size: 0.88rem; margin: 0;">
+                        <input type="checkbox" name="notify_recipient" value="1" checked style="width: 16px; height: 16px;">
+                        <span>Send email notification with secure link to all recipients immediately</span>
+                    </label>
+                </div>
+
 
     <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #e2e8f0; padding-top: 14px;">
         <button type="button" id="btnCancelUploadModal" class="btn-secondary" onclick="closeUploadModal()">Cancel</button>
