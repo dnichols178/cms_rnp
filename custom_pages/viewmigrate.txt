@@ -1,0 +1,895 @@
+==========================================================
+Display ID: default | Title: Master | Plugin: default
+==========================================================
+
+--- FIELDS ---
+Array
+(
+    [views_bulk_operations] => Array
+        (
+            [id] => views_bulk_operations
+            [table] => registration
+            [field] => views_bulk_operations
+            [relationship] => registration_rel
+            [group_type] => group
+            [ui_name] => 
+            [label] => 
+            [exclude] => 0
+            [alter] => Array
+                (
+                    [alter_text] => 0
+                    [text] => 
+                    [make_link] => 0
+                    [path] => 
+                    [absolute] => 0
+                    [external] => 0
+                    [replace_spaces] => 0
+                    [path_case] => none
+                    [trim_whitespace] => 0
+                    [alt] => 
+                    [rel] => 
+                    [link_class] => 
+                    [prefix] => 
+                    [suffix] => 
+                    [target] => 
+                    [nl2br] => 0
+                    [max_length] => 
+                    [word_boundary] => 1
+                    [ellipsis] => 1
+                    [more_link] => 0
+                    [more_link_text] => 
+                    [more_link_path] => 
+                    [strip_tags] => 0
+                    [trim] => 0
+                    [preserve_tags] => 
+                    [html] => 0
+                )
+
+            [element_type] => 
+            [element_class] => 
+            [element_label_type] => 
+            [element_label_class] => 
+            [element_label_colon] => 
+            [element_wrapper_type] => 
+            [element_wrapper_class] => 
+            [element_default_classes] => 1
+            [empty] => 
+            [hide_empty] => 0
+            [empty_zero] => 0
+            [hide_alter_empty] => 1
+            [vbo_settings] => Array
+                (
+                    [display_type] => 0
+                    [enable_select_all_pages] => 1
+                    [row_clickable] => 1
+                    [force_single] => 0
+                    [entity_load_capacity] => 10
+                    [skip_batching] => 0
+                )
+
+            [vbo_operations] => Array
+                (
+                    [rules_component::rules_application_notification_and_additional_information] => Array
+                        (
+                            [selected] => 0
+                            [postpone_processing] => 0
+                            [skip_confirmation] => 0
+                            [override_label] => 0
+                            [label] => 
+                        )
+
+                    [rules_component::rules_chosen_organization] => Array
+                        (
+                            [selected] => 0
+                            [postpone_processing] => 0
+                            [skip_confirmation] => 0
+                            [override_label] => 0
+                            [label] => 
+                        )
+
+                    [rules_component::rules_has_additional_information] => Array
+                        (
+                            [selected] => 0
+                            [postpone_processing] => 0
+                            [skip_confirmation] => 0
+                            [override_label] => 0
+                            [label] => 
+                        )
+
+                    [action::views_bulk_operations_delete_item] => Array
+                        (
+                            [selected] => 1
+                            [postpone_processing] => 0
+                            [skip_confirmation] => 0
+                            [override_label] => 0
+                            [label] => 
+                        )
+
+                    [action::views_bulk_operations_delete_revision] => Array
+                        (
+                            [selected] => 0
+                            [postpone_processing] => 0
+                            [skip_confirmation] => 0
+                            [override_label] => 0
+                            [label] => 
+                        )
+
+                    [action::views_bulk_operations_script_action] => Array
+                        (
+                            [selected] => 0
+                            [postpone_processing] => 0
+                            [skip_confirmation] => 0
+                            [override_label] => 0
+                            [label] => 
+                        )
+
+                    [action::views_bulk_operations_modify_action] => Array
+                        (
+                            [selected] => 0
+                            [postpone_processing] => 0
+                            [skip_confirmation] => 0
+                            [override_label] => 0
+                            [label] => 
+                            [settings] => Array
+                                (
+                                    [show_all_tokens] => 1
+                                    [display_values] => Array
+                                        (
+                                            [_all_] => _all_
+                                        )
+
+                                )
+
+                        )
+
+                    [action::views_bulk_operations_argument_selector_action] => Array
+                        (
+                            [selected] => 0
+                            [skip_confirmation] => 0
+                            [override_label] => 0
+                            [label] => 
+                            [settings] => Array
+                                (
+                                    [url] => 
+                                )
+
+                        )
+
+                    [action::system_send_email_action] => Array
+                        (
+                            [selected] => 0
+                            [postpone_processing] => 0
+                            [skip_confirmation] => 0
+                            [override_label] => 0
+                            [label] => 
+                        )
+
+                    [action::registration_views_set_state_action] => Array
+                        (
+                            [selected] => 0
+                            [postpone_processing] => 0
+                            [skip_confirmation] => 0
+                            [override_label] => 0
+                            [label] => 
+                            [settings] => Array
+                                (
+                                    [default_registration_state] => 
+                                )
+
+                        )
+
+                )
+
+        )
+
+    [created] => Array
+        (
+            [id] => created
+            [table] => registration
+            [field] => created
+            [relationship] => registration_rel
+            [group_type] => group
+            [ui_name] => 
+            [label] => Date created
+            [exclude] => 0
+            [alter] => Array
+                (
+                    [alter_text] => 0
+                    [text] => 
+                    [make_link] => 0
+                    [path] => 
+                    [absolute] => 0
+                    [external] => 0
+                    [replace_spaces] => 0
+                    [path_case] => none
+                    [trim_whitespace] => 0
+                    [alt] => 
+                    [rel] => 
+                    [link_class] => 
+                    [prefix] => 
+                    [suffix] => 
+                    [target] => 
+                    [nl2br] => 0
+                    [max_length] => 
+                    [word_boundary] => 1
+                    [ellipsis] => 1
+                    [more_link] => 0
+                    [more_link_text] => 
+                    [more_link_path] => 
+                    [strip_tags] => 0
+                    [trim] => 0
+                    [preserve_tags] => 
+                    [html] => 0
+                )
+
+            [element_type] => 
+            [element_class] => 
+            [element_label_type] => 
+            [element_label_class] => 
+            [element_label_colon] => 0
+            [element_wrapper_type] => 
+            [element_wrapper_class] => 
+            [element_default_classes] => 1
+            [empty] => 
+            [hide_empty] => 0
+            [empty_zero] => 0
+            [hide_alter_empty] => 1
+            [date_format] => short
+            [custom_date_format] => 
+            [second_date_format_custom] => 
+            [second_date_format] => filetree
+            [timezone] => 
+        )
+
+    [field_full_name] => Array
+        (
+            [id] => field_full_name
+            [table] => field_data_field_full_name
+            [field] => field_full_name
+            [relationship] => registration_rel
+        )
+
+    [anon_mail] => Array
+        (
+            [id] => anon_mail
+            [table] => registration
+            [field] => anon_mail
+            [relationship] => registration_rel
+            [group_type] => group
+            [ui_name] => 
+            [label] => E-mail
+            [exclude] => 0
+            [alter] => Array
+                (
+                    [alter_text] => 0
+                    [text] => 
+                    [make_link] => 0
+                    [path] => 
+                    [absolute] => 0
+                    [external] => 0
+                    [replace_spaces] => 0
+                    [path_case] => none
+                    [trim_whitespace] => 0
+                    [alt] => 
+                    [rel] => 
+                    [link_class] => 
+                    [prefix] => 
+                    [suffix] => 
+                    [target] => 
+                    [nl2br] => 0
+                    [max_length] => 
+                    [word_boundary] => 1
+                    [ellipsis] => 1
+                    [more_link] => 0
+                    [more_link_text] => 
+                    [more_link_path] => 
+                    [strip_tags] => 0
+                    [trim] => 0
+                    [preserve_tags] => 
+                    [html] => 0
+                )
+
+            [element_type] => 
+            [element_class] => 
+            [element_label_type] => 
+            [element_label_class] => 
+            [element_label_colon] => 0
+            [element_wrapper_type] => 
+            [element_wrapper_class] => 
+            [element_default_classes] => 1
+            [empty] => 
+            [hide_empty] => 0
+            [empty_zero] => 0
+            [hide_alter_empty] => 1
+        )
+
+    [field_sb_organization] => Array
+        (
+            [id] => field_sb_organization
+            [table] => field_data_field_sb_organization
+            [field] => field_sb_organization
+            [relationship] => registration_rel
+            [group_type] => group
+            [ui_name] => 
+            [label] => Organization
+            [exclude] => 0
+            [alter] => Array
+                (
+                    [alter_text] => 0
+                    [text] => 
+                    [make_link] => 0
+                    [path] => 
+                    [absolute] => 0
+                    [external] => 0
+                    [replace_spaces] => 0
+                    [path_case] => none
+                    [trim_whitespace] => 0
+                    [alt] => 
+                    [rel] => 
+                    [link_class] => 
+                    [prefix] => 
+                    [suffix] => 
+                    [target] => 
+                    [nl2br] => 0
+                    [max_length] => 
+                    [word_boundary] => 1
+                    [ellipsis] => 1
+                    [more_link] => 0
+                    [more_link_text] => 
+                    [more_link_path] => 
+                    [strip_tags] => 0
+                    [trim] => 0
+                    [preserve_tags] => 
+                    [html] => 0
+                )
+
+            [element_type] => 
+            [element_class] => 
+            [element_label_type] => 
+            [element_label_class] => 
+            [element_label_colon] => 1
+            [element_wrapper_type] => 
+            [element_wrapper_class] => 
+            [element_default_classes] => 1
+            [empty] => 
+            [hide_empty] => 0
+            [empty_zero] => 0
+            [hide_alter_empty] => 1
+            [click_sort_column] => value
+            [type] => list_default
+            [settings] => Array
+                (
+                )
+
+            [group_column] => value
+            [group_columns] => Array
+                (
+                )
+
+            [group_rows] => 1
+            [delta_limit] => all
+            [delta_offset] => 0
+            [delta_reversed] => 
+            [delta_first_last] => 
+            [delta_random] => 
+            [multi_type] => separator
+            [separator] => , 
+            [field_api_classes] => 0
+        )
+
+    [field_proffered_session] => Array
+        (
+            [id] => field_proffered_session
+            [table] => field_data_field_proffered_session
+            [field] => field_proffered_session
+            [relationship] => registration_rel
+            [group_type] => group
+            [ui_name] => 
+            [label] => Preferred Session
+            [exclude] => 0
+            [alter] => Array
+                (
+                    [alter_text] => 0
+                    [text] => 
+                    [make_link] => 0
+                    [path] => 
+                    [absolute] => 0
+                    [external] => 0
+                    [replace_spaces] => 0
+                    [path_case] => none
+                    [trim_whitespace] => 0
+                    [alt] => 
+                    [rel] => 
+                    [link_class] => 
+                    [prefix] => 
+                    [suffix] => 
+                    [target] => 
+                    [nl2br] => 0
+                    [max_length] => 
+                    [word_boundary] => 1
+                    [ellipsis] => 1
+                    [more_link] => 0
+                    [more_link_text] => 
+                    [more_link_path] => 
+                    [strip_tags] => 0
+                    [trim] => 0
+                    [preserve_tags] => 
+                    [html] => 0
+                )
+
+            [element_type] => 
+            [element_class] => 
+            [element_label_type] => 
+            [element_label_class] => 
+            [element_label_colon] => 0
+            [element_wrapper_type] => 
+            [element_wrapper_class] => 
+            [element_default_classes] => 1
+            [empty] => 
+            [hide_empty] => 0
+            [empty_zero] => 0
+            [hide_alter_empty] => 1
+            [click_sort_column] => value
+            [type] => list_default
+            [settings] => Array
+                (
+                )
+
+            [group_column] => value
+            [group_columns] => Array
+                (
+                )
+
+            [group_rows] => 1
+            [delta_limit] => all
+            [delta_offset] => 0
+            [delta_reversed] => 
+            [delta_first_last] => 
+            [delta_random] => 
+            [multi_type] => separator
+            [separator] => , 
+            [field_api_classes] => 0
+        )
+
+    [field_positions] => Array
+        (
+            [id] => field_positions
+            [table] => field_data_field_positions
+            [field] => field_positions
+            [relationship] => registration_rel
+            [group_type] => group
+            [ui_name] => 
+            [label] => Positions
+            [exclude] => 0
+            [alter] => Array
+                (
+                    [alter_text] => 0
+                    [text] => 
+                    [make_link] => 0
+                    [path] => 
+                    [absolute] => 0
+                    [external] => 0
+                    [replace_spaces] => 0
+                    [path_case] => none
+                    [trim_whitespace] => 0
+                    [alt] => 
+                    [rel] => 
+                    [link_class] => 
+                    [prefix] => 
+                    [suffix] => 
+                    [target] => 
+                    [nl2br] => 0
+                    [max_length] => 
+                    [word_boundary] => 1
+                    [ellipsis] => 1
+                    [more_link] => 0
+                    [more_link_text] => 
+                    [more_link_path] => 
+                    [strip_tags] => 0
+                    [trim] => 0
+                    [preserve_tags] => 
+                    [html] => 0
+                )
+
+            [element_type] => 
+            [element_class] => 
+            [element_label_type] => 
+            [element_label_class] => 
+            [element_label_colon] => 0
+            [element_wrapper_type] => 
+            [element_wrapper_class] => 
+            [element_default_classes] => 1
+            [empty] => 
+            [hide_empty] => 0
+            [empty_zero] => 0
+            [hide_alter_empty] => 1
+            [click_sort_column] => value
+            [type] => list_default
+            [settings] => Array
+                (
+                )
+
+            [group_column] => value
+            [group_columns] => Array
+                (
+                )
+
+            [group_rows] => 1
+            [delta_limit] => all
+            [delta_offset] => 0
+            [delta_reversed] => 0
+            [delta_first_last] => 0
+            [delta_random] => 0
+            [multi_type] => ul
+            [separator] => , 
+            [field_api_classes] => 0
+        )
+
+    [field_shirt_type] => Array
+        (
+            [id] => field_shirt_type
+            [table] => field_data_field_shirt_type
+            [field] => field_shirt_type
+            [relationship] => registration_rel
+            [group_type] => group
+            [ui_name] => 
+            [label] => Shirt Type
+            [exclude] => 0
+            [alter] => Array
+                (
+                    [alter_text] => 0
+                    [text] => 
+                    [make_link] => 0
+                    [path] => 
+                    [absolute] => 0
+                    [external] => 0
+                    [replace_spaces] => 0
+                    [path_case] => none
+                    [trim_whitespace] => 0
+                    [alt] => 
+                    [rel] => 
+                    [link_class] => 
+                    [prefix] => 
+                    [suffix] => 
+                    [target] => 
+                    [nl2br] => 0
+                    [max_length] => 
+                    [word_boundary] => 1
+                    [ellipsis] => 1
+                    [more_link] => 0
+                    [more_link_text] => 
+                    [more_link_path] => 
+                    [strip_tags] => 0
+                    [trim] => 0
+                    [preserve_tags] => 
+                    [html] => 0
+                )
+
+            [element_type] => 
+            [element_class] => 
+            [element_label_type] => 
+            [element_label_class] => 
+            [element_label_colon] => 0
+            [element_wrapper_type] => 
+            [element_wrapper_class] => 
+            [element_default_classes] => 1
+            [empty] => N/A
+            [hide_empty] => 0
+            [empty_zero] => 0
+            [hide_alter_empty] => 0
+            [click_sort_column] => value
+            [type] => list_default
+            [settings] => Array
+                (
+                )
+
+            [group_column] => value
+            [group_columns] => Array
+                (
+                )
+
+            [group_rows] => 1
+            [delta_limit] => all
+            [delta_offset] => 0
+            [delta_reversed] => 
+            [delta_first_last] => 
+            [delta_random] => 
+            [multi_type] => separator
+            [separator] => , 
+            [field_api_classes] => 0
+        )
+
+    [field_shirt_size] => Array
+        (
+            [id] => field_shirt_size
+            [table] => field_data_field_shirt_size
+            [field] => field_shirt_size
+            [relationship] => registration_rel
+            [group_type] => group
+            [ui_name] => 
+            [label] => Shirt Size
+            [exclude] => 0
+            [alter] => Array
+                (
+                    [alter_text] => 0
+                    [text] => 
+                    [make_link] => 0
+                    [path] => 
+                    [absolute] => 0
+                    [external] => 0
+                    [replace_spaces] => 0
+                    [path_case] => none
+                    [trim_whitespace] => 0
+                    [alt] => 
+                    [rel] => 
+                    [link_class] => 
+                    [prefix] => 
+                    [suffix] => 
+                    [target] => 
+                    [nl2br] => 0
+                    [max_length] => 
+                    [word_boundary] => 1
+                    [ellipsis] => 1
+                    [more_link] => 0
+                    [more_link_text] => 
+                    [more_link_path] => 
+                    [strip_tags] => 0
+                    [trim] => 0
+                    [preserve_tags] => 
+                    [html] => 0
+                )
+
+            [element_type] => 
+            [element_class] => 
+            [element_label_type] => 
+            [element_label_class] => 
+            [element_label_colon] => 0
+            [element_wrapper_type] => 
+            [element_wrapper_class] => 
+            [element_default_classes] => 1
+            [empty] => 
+            [hide_empty] => 0
+            [empty_zero] => 0
+            [hide_alter_empty] => 1
+            [click_sort_column] => value
+            [type] => list_default
+            [settings] => Array
+                (
+                )
+
+            [group_column] => value
+            [group_columns] => Array
+                (
+                )
+
+            [group_rows] => 1
+            [delta_limit] => all
+            [delta_offset] => 0
+            [delta_reversed] => 
+            [delta_first_last] => 
+            [delta_random] => 
+            [multi_type] => separator
+            [separator] => , 
+            [field_api_classes] => 0
+        )
+
+    [field_food_alg] => Array
+        (
+            [id] => field_food_alg
+            [table] => field_data_field_food_alg
+            [field] => field_food_alg
+            [relationship] => registration_rel
+            [group_type] => group
+            [ui_name] => 
+            [label] => Food Allergies?
+            [exclude] => 0
+            [alter] => Array
+                (
+                    [alter_text] => 0
+                    [text] => 
+                    [make_link] => 0
+                    [path] => 
+                    [absolute] => 0
+                    [external] => 0
+                    [replace_spaces] => 0
+                    [path_case] => none
+                    [trim_whitespace] => 0
+                    [alt] => 
+                    [rel] => 
+                    [link_class] => 
+                    [prefix] => 
+                    [suffix] => 
+                    [target] => 
+                    [nl2br] => 0
+                    [max_length] => 
+                    [word_boundary] => 1
+                    [ellipsis] => 1
+                    [more_link] => 0
+                    [more_link_text] => 
+                    [more_link_path] => 
+                    [strip_tags] => 0
+                    [trim] => 0
+                    [preserve_tags] => 
+                    [html] => 0
+                )
+
+            [element_type] => 
+            [element_class] => 
+            [element_label_type] => 
+            [element_label_class] => 
+            [element_label_colon] => 0
+            [element_wrapper_type] => 
+            [element_wrapper_class] => 
+            [element_default_classes] => 1
+            [empty] => 
+            [hide_empty] => 0
+            [empty_zero] => 0
+            [hide_alter_empty] => 1
+            [click_sort_column] => value
+            [type] => list_default
+            [settings] => Array
+                (
+                )
+
+            [group_column] => value
+            [group_columns] => Array
+                (
+                )
+
+            [group_rows] => 1
+            [delta_limit] => all
+            [delta_offset] => 0
+            [delta_reversed] => 
+            [delta_first_last] => 
+            [delta_random] => 
+            [multi_type] => separator
+            [separator] => , 
+            [field_api_classes] => 0
+        )
+
+)
+
+--- FILTERS ---
+Array
+(
+    [status] => Array
+        (
+            [value] => 1
+            [table] => node
+            [field] => status
+            [id] => status
+            [expose] => Array
+                (
+                    [operator] => 
+                )
+
+            [group] => 1
+        )
+
+    [type] => Array
+        (
+            [id] => type
+            [table] => node
+            [field] => type
+            [value] => Array
+                (
+                    [form_pages] => form_pages
+                )
+
+        )
+
+    [type_1] => Array
+        (
+            [id] => type_1
+            [table] => registration
+            [field] => type
+            [relationship] => registration_rel
+            [group_type] => group
+            [ui_name] => 
+            [operator] => in
+            [value] => Array
+                (
+                    [science_bowl_volunteer] => science_bowl_volunteer
+                )
+
+            [group] => 1
+            [exposed] => 
+            [expose] => Array
+                (
+                    [operator_id] => 
+                    [label] => 
+                    [description] => 
+                    [use_operator] => 
+                    [operator_label] => 
+                    [operator] => 
+                    [identifier] => 
+                    [required] => 
+                    [remember] => 
+                    [multiple] => 
+                    [remember_roles] => Array
+                        (
+                            [2] => 2
+                        )
+
+                    [reduce] => 
+                )
+
+            [is_grouped] => 
+            [group_info] => Array
+                (
+                    [label] => 
+                    [description] => 
+                    [identifier] => 
+                    [optional] => 1
+                    [widget] => select
+                    [multiple] => 
+                    [remember] => 0
+                    [default_group] => All
+                    [default_group_multiple] => Array
+                        (
+                        )
+
+                    [group_items] => Array
+                        (
+                        )
+
+                )
+
+        )
+
+)
+
+--- RELATIONSHIPS ---
+Array
+(
+    [registration_rel] => Array
+        (
+            [id] => registration_rel
+            [table] => node
+            [field] => registration_rel
+            [relationship] => none
+            [group_type] => group
+            [ui_name] => 
+            [label] => node being the Registration
+            [required] => 0
+        )
+
+)
+
+--- SORTS ---
+Array
+(
+    [created] => Array
+        (
+            [id] => created
+            [table] => node
+            [field] => created
+            [order] => DESC
+        )
+
+)
+
+==========================================================
+Display ID: page | Title: Page | Plugin: page
+==========================================================
+
+--- FIELDS ---
+Inherited from default
+--- FILTERS ---
+Inherited from default
+--- RELATIONSHIPS ---
+None
+--- SORTS ---
+Inherited from default
+==========================================================
+Display ID: views_data_export_1 | Title: Data export | Plugin: views_data_export
+==========================================================
+
+--- FIELDS ---
+Inherited from default
+--- FILTERS ---
+Inherited from default
+--- RELATIONSHIPS ---
+None
+--- SORTS ---
+Inherited from default
