@@ -551,7 +551,7 @@ $transfers = $db->query('
                     <small style="color: #64748b; font-size: 0.78rem;">Each recipient will verify independently and can deactivate their own access upon download.</small>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+                
                     <div class="form-row">
                         <label>Identity Verification Mode *</label>
                         <select name="auth_mode" style="width: 100%;">
@@ -562,45 +562,6 @@ $transfers = $db->query('
                     </div>
 
     <div id="uploadErrorBanner" class="upload-error-banner"></div>
-
-    <div class="form-row" style="margin-bottom: 14px;">
-                    <label>Package Title *</label>
-                    <input type="text" name="title" required placeholder="e.g. C-400 Remediation Phase II Design Dossier">
-                </div>
-
-                <div class="form-row" style="margin-bottom: 14px;">
-                    <label>Description / Notes for Recipients (Optional)</label>
-                    <textarea name="description" rows="2" placeholder="Brief briefing notes, clearance instructions, or contents summary..."></textarea>
-                </div>
-
-                <div class="form-row" style="margin-bottom: 14px;">
-                    <label>Authorized Recipient Email(s) *</label>
-                    <textarea name="recipient_emails" rows="3" required placeholder="Enter one or multiple email addresses (separated by commas or new lines)&#10;e.g. engineer@partner.gov, contractor@cleanupsite.com"></textarea>
-                    <small style="color: #64748b; font-size: 0.78rem;">Each recipient will verify independently and can deactivate their own access upon download.</small>
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
-                    <div class="form-row">
-                        <label>Identity Verification Mode *</label>
-                        <select name="auth_mode" style="width: 100%;">
-                            <option value="direct" selected>Direct Email Match (Faster Access)</option>
-                            <option value="otp">Email + 4-Digit One-Time PIN (Higher Security)</option>
-                        </select>
-                        <small style="color: #64748b; font-size: 0.78rem;">OTP generates and emails an instant 4-digit PIN upon arrival.</small>
-                    </div>
-
-                    <div class="form-row">
-                        <label>Expiration Window</label>
-                        <select name="expire_days" style="width: 100%;">
-                            <option value="0">No Expiration (Never)</option>
-                            <option value="1">24 Hours</option>
-                            <option value="3">3 Days</option>
-                            <option value="7" selected>7 Days</option>
-                            <option value="14">14 Days</option>
-                            <option value="30">30 Days</option>
-                        </select>
-                    </div>
-                </div>
 
     <div class="form-row" style="margin-bottom: 16px;">
         <label>Select Document File * (Stored in protected /vault/)</label>
