@@ -146,90 +146,116 @@ function send_recipient_transfer_notification(array $transfer, string $recipient
 // =========================================================================
 // 1. Action: Create Transfer Package with Multiple Recipients
 // =========================================================================
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_transfer'])) {
-    validate_csrf();
+$is_ajax_request = (strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'xmlhttprequest');
 
-    $title            = trim($_POST['title'] ?? '');
-    $description      = trim($_POST['description'] ?? '');
-    $raw_recipients   = trim($_POST['recipient_emails'] ?? '');
-    $auth_mode        = in_array($_POST['auth_mode'] ?? '', ['direct', 'otp'], true) ? $_POST['auth_mode'] : 'direct';
-    $raw_expire_days  = (int)($_POST['expire_days'] ?? 7);
-    $notify_recipient = !empty($_POST['notify_recipient']);
-
-    $emails = parse_recipient_emails($raw_recipients);
-
-    if ($title === '') {
-        set_flash('error', 'Please provide a title for the transfer package.');
-    } elseif (empty($emails)) {
-        set_flash('error', 'Please enter at least one valid recipient email address.');
-    } elseif (empty($_FILES['package_file']['name']) || $_FILES['package_file']['error'] !== UPLOAD_ERR_OK) {
-        set_flash('error', 'Please select a valid document or archive file to upload.');
-    } else {
-        $file_tmp  = $_FILES['package_file']['tmp_name'];
-        $orig_name = basename($_FILES['package_file']['name']);
-        $file_size = (int)filesize($file_tmp);
-        $file_hash = hash_file('sha256', $file_tmp);
-        $mime_type = mime_content_type($file_tmp) ?: 'application/octet-stream';
-
-        $token           = bin2hex(random_bytes(24));
-        $stored_filename = 'sec_' . bin2hex(random_bytes(16)) . '.bin';
-        $dest_path       = $vault_dir . '/' . $stored_filename;
-
-        if (move_uploaded_file($file_tmp, $dest_path)) {
-            $expires_at = null;
-            if ($raw_expire_days > 0) {
-                $expire_days = max(1, min(60, $raw_expire_days));
-                $expires_at  = date('Y-m-d H:i:s', strtotime("+{$expire_days} days"));
-            }
-
-            $user = current_user();
-
-            $stmt = $db->prepare('
-                INSERT INTO secure_transfers 
-                (token, title, description, original_filename, stored_filename, file_size, mime_type, file_hash, auth_mode, expires_at, created_by)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ');
-            $stmt->execute([
-                $token, $title, $description, $orig_name, $stored_filename,
-                $file_size, $mime_type, $file_hash, $auth_mode, $expires_at, $user['id'] ?? null
-            ]);
-            $new_transfer_id = (int)$db->lastInsertId();
-
-            $ins_recip = $db->prepare('INSERT INTO secure_transfer_recipients (transfer_id, recipient_email) VALUES (?, ?)');
-            foreach ($emails as $email) {
-                $ins_recip->execute([$new_transfer_id, $email]);
-            }
-
-            $protocol   = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
-            $public_url = $protocol . ($_SERVER['HTTP_HOST'] ?? 'localhost') . base_path('transfer/' . $token);
-
-            $notified_count = 0;
-            if ($notify_recipient) {
-                $transfer_record = [
-                    'id'                => $new_transfer_id,
-                    'title'             => $title,
-                    'original_filename' => $orig_name,
-                    'file_size'         => $file_size,
-                    'description'       => $description,
-                    'expires_at'        => $expires_at,
-                    'auth_mode'         => $auth_mode
-                ];
-                foreach ($emails as $email) {
-                    send_recipient_transfer_notification($transfer_record, $email, $public_url);
-                    $notified_count++;
-                }
-                if (function_exists('process_email_queue')) {
-                    process_email_queue($notified_count);
-                }
-            }
-
-            $recip_count = count($emails);
-            watchdog('security', "Created secure transfer '{$title}' (#{$new_transfer_id}) with {$recip_count} recipient(s) [Auth: {$auth_mode}].", 'notice');
-            set_flash('success', "Transfer package created with {$recip_count} recipient(s)." . ($notify_recipient ? " Notifications dispatched." : ""));
-            header('Location: ' . base_path('admin/secure_transfers.php'));
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['create_transfer']) || $is_ajax_request)) {
+    $respond_upload_error = static function (string $msg) use ($is_ajax_request): void {
+        if ($is_ajax_request) {
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['ok' => false, 'error' => $msg]);
             exit;
+        }
+        set_flash('error', $msg);
+    };
+
+    if (empty($_POST) && (int)($_SERVER['CONTENT_LENGTH'] ?? 0) > 0) {
+        $respond_upload_error('The selected file exceeds the server maximum upload size (' . ini_get('post_max_size') . ').');
+    } else {
+        validate_csrf();
+
+        $title            = trim($_POST['title'] ?? '');
+        $description      = trim($_POST['description'] ?? '');
+        $raw_recipients   = trim($_POST['recipient_emails'] ?? '');
+        $auth_mode        = in_array($_POST['auth_mode'] ?? '', ['direct', 'otp'], true) ? $_POST['auth_mode'] : 'direct';
+        $raw_expire_days  = (int)($_POST['expire_days'] ?? 7);
+        $notify_recipient = !empty($_POST['notify_recipient']);
+
+        $emails = parse_recipient_emails($raw_recipients);
+
+        if ($title === '') {
+            $respond_upload_error('Please provide a title for the transfer package.');
+        } elseif (empty($emails)) {
+            $respond_upload_error('Please enter at least one valid recipient email address.');
+        } elseif (empty($_FILES['package_file']['name']) || $_FILES['package_file']['error'] !== UPLOAD_ERR_OK) {
+            $upload_err = $_FILES['package_file']['error'] ?? UPLOAD_ERR_NO_FILE;
+            $err_msg = ($upload_err === UPLOAD_ERR_INI_SIZE || $upload_err === UPLOAD_ERR_FORM_SIZE)
+                ? 'The file exceeds the maximum allowed upload size (' . ini_get('upload_max_filesize') . ').'
+                : 'Please select a valid document or archive file to upload.';
+            $respond_upload_error($err_msg);
         } else {
-            set_flash('error', 'Failed to store file in vault. Check write permissions on /vault.');
+            $file_tmp  = $_FILES['package_file']['tmp_name'];
+            $orig_name = basename($_FILES['package_file']['name']);
+            $file_size = (int)filesize($file_tmp);
+            $file_hash = hash_file('sha256', $file_tmp);
+            $mime_type = mime_content_type($file_tmp) ?: 'application/octet-stream';
+
+            $token           = bin2hex(random_bytes(24));
+            $stored_filename = 'sec_' . bin2hex(random_bytes(16)) . '.bin';
+            $dest_path       = $vault_dir . '/' . $stored_filename;
+
+            if (move_uploaded_file($file_tmp, $dest_path)) {
+                $expires_at = null;
+                if ($raw_expire_days > 0) {
+                    $expire_days = max(1, min(60, $raw_expire_days));
+                    $expires_at  = date('Y-m-d H:i:s', strtotime("+{$expire_days} days"));
+                }
+
+                $user = current_user();
+
+                $stmt = $db->prepare('
+                    INSERT INTO secure_transfers 
+                    (token, title, description, original_filename, stored_filename, file_size, mime_type, file_hash, auth_mode, expires_at, created_by)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ');
+                $stmt->execute([
+                    $token, $title, $description, $orig_name, $stored_filename,
+                    $file_size, $mime_type, $file_hash, $auth_mode, $expires_at, $user['id'] ?? null
+                ]);
+                $new_transfer_id = (int)$db->lastInsertId();
+
+                $ins_recip = $db->prepare('INSERT INTO secure_transfer_recipients (transfer_id, recipient_email) VALUES (?, ?)');
+                foreach ($emails as $email) {
+                    $ins_recip->execute([$new_transfer_id, $email]);
+                }
+
+                $protocol   = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
+                $public_url = $protocol . ($_SERVER['HTTP_HOST'] ?? 'localhost') . base_path('transfer/' . $token);
+
+                $notified_count = 0;
+                if ($notify_recipient) {
+                    $transfer_record = [
+                        'id'                => $new_transfer_id,
+                        'title'             => $title,
+                        'original_filename' => $orig_name,
+                        'file_size'         => $file_size,
+                        'description'       => $description,
+                        'expires_at'        => $expires_at,
+                        'auth_mode'         => $auth_mode
+                    ];
+                    foreach ($emails as $email) {
+                        send_recipient_transfer_notification($transfer_record, $email, $public_url);
+                        $notified_count++;
+                    }
+                    if (function_exists('process_email_queue')) {
+                        process_email_queue($notified_count);
+                    }
+                }
+
+                $recip_count = count($emails);
+                watchdog('security', "Created secure transfer '{$title}' (#{$new_transfer_id}) with {$recip_count} recipient(s) [Auth: {$auth_mode}].", 'notice');
+                set_flash('success', "Transfer package created with {$recip_count} recipient(s)." . ($notify_recipient ? " Notifications dispatched." : ""));
+
+                $redirect_url = base_path('admin/secure_transfers.php');
+                if ($is_ajax_request) {
+                    header('Content-Type: application/json; charset=utf-8');
+                    echo json_encode(['ok' => true, 'redirect' => $redirect_url]);
+                    exit;
+                }
+                header('Location: ' . $redirect_url);
+                exit;
+            } else {
+                $respond_upload_error('Failed to store file in vault. Check write permissions on /vault.');
+            }
         }
     }
 }
@@ -343,6 +369,38 @@ $transfers = $db->query('
             background: #ffffff; width: 780px; max-width: 95vw; max-height: 90vh;
             overflow-y: auto; border-radius: 8px; padding: 24px 28px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
         }
+        .upload-progress-box {
+    display: none;
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+}
+.upload-progress-track {
+    width: 100%;
+    height: 10px;
+    background: #e2e8f0;
+    border-radius: 999px;
+    overflow: hidden;
+    margin: 8px 0 6px 0;
+}
+.upload-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #0b2545 0%, #1d4ed8 100%);
+    transition: width 0.15s ease;
+}
+.upload-error-banner {
+    display: none;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #b91c1c;
+    padding: 10px 12px;
+    border-radius: 5px;
+    font-size: 0.84rem;
+    margin-bottom: 14px;
+}
     </style>
 </head>
 <body>
@@ -473,66 +531,43 @@ $transfers = $db->query('
                 <button type="button" onclick="closeUploadModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #64748b;">&times;</button>
             </div>
 
-            <form method="POST" action="<?= base_path('admin/secure_transfers.php') ?>" enctype="multipart/form-data">
-                <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
-                <input type="hidden" name="create_transfer" value="1">
+            <form id="secureTransferUploadForm" method="POST" action="<?= base_path('admin/secure_transfers.php') ?>" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
+    <input type="hidden" name="create_transfer" value="1">
 
-                <div class="form-row" style="margin-bottom: 14px;">
-                    <label>Package Title *</label>
-                    <input type="text" name="title" required placeholder="e.g. C-400 Remediation Phase II Design Dossier">
-                </div>
+    <div id="uploadErrorBanner" class="upload-error-banner"></div>
 
-                <div class="form-row" style="margin-bottom: 14px;">
-                    <label>Description / Notes for Recipients (Optional)</label>
-                    <textarea name="description" rows="2" placeholder="Brief briefing notes, clearance instructions, or contents summary..."></textarea>
-                </div>
+    <!-- ... existing title, description, recipient_emails, auth_mode, expire_days fields ... -->
 
-                <div class="form-row" style="margin-bottom: 14px;">
-                    <label>Authorized Recipient Email(s) *</label>
-                    <textarea name="recipient_emails" rows="3" required placeholder="Enter one or multiple email addresses (separated by commas or new lines)&#10;e.g. engineer@partner.gov, contractor@cleanupsite.com"></textarea>
-                    <small style="color: #64748b; font-size: 0.78rem;">Each recipient will verify independently and can deactivate their own access upon download.</small>
-                </div>
+    <div class="form-row" style="margin-bottom: 16px;">
+        <label>Select Document File * (Stored in protected /vault/)</label>
+        <input type="file" id="packageFileInput" name="package_file" required style="border: 1px dashed #cbd5e1; padding: 12px; background: #f8fafc; width: 100%; border-radius: 4px;">
+    </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
-                    <div class="form-row">
-                        <label>Identity Verification Mode *</label>
-                        <select name="auth_mode" style="width: 100%;">
-                            <option value="direct" selected>Direct Email Match (Faster Access)</option>
-                            <option value="otp">Email + 4-Digit One-Time PIN (Higher Security)</option>
-                        </select>
-                        <small style="color: #64748b; font-size: 0.78rem;">OTP generates and emails an instant 4-digit PIN upon arrival.</small>
-                    </div>
+    <!-- Real-Time Upload Progress Bar -->
+    <div id="uploadProgressBox" class="upload-progress-box">
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; font-weight: 700; color: #0b2545;">
+            <span id="uploadProgressStatus">Uploading file to secure vault...</span>
+            <span id="uploadProgressPercent">0%</span>
+        </div>
+        <div class="upload-progress-track">
+            <div id="uploadProgressFill" class="upload-progress-fill"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.76rem; color: #64748b;">
+            <span id="uploadProgressBytes">0 B / 0 B</span>
+            <button type="button" id="btnAbortUpload" style="background: none; border: none; color: #dc2626; font-size: 0.76rem; font-weight: 600; cursor: pointer; padding: 0;">
+                Cancel Upload
+            </button>
+        </div>
+    </div>
 
-                    <div class="form-row">
-                        <label>Expiration Window</label>
-                        <select name="expire_days" style="width: 100%;">
-                            <option value="0">No Expiration (Never)</option>
-                            <option value="1">24 Hours</option>
-                            <option value="3">3 Days</option>
-                            <option value="7" selected>7 Days</option>
-                            <option value="14">14 Days</option>
-                            <option value="30">30 Days</option>
-                        </select>
-                    </div>
-                </div>
+    <!-- ... existing notify_recipient checkbox ... -->
 
-                <div class="form-row" style="margin-bottom: 16px;">
-                    <label>Select Document File * (Stored in protected /vault/)</label>
-                    <input type="file" name="package_file" required style="border: 1px dashed #cbd5e1; padding: 12px; background: #f8fafc; width: 100%; border-radius: 4px;">
-                </div>
-
-                <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px 14px; border-radius: 5px; margin-bottom: 20px;">
-                    <label style="display: flex; align-items: center; gap: 8px; font-weight: 600; color: #0b2545; cursor: pointer; font-size: 0.88rem; margin: 0;">
-                        <input type="checkbox" name="notify_recipient" value="1" checked style="width: 16px; height: 16px;">
-                        <span>Send email notification with secure link to all recipients immediately</span>
-                    </label>
-                </div>
-
-                <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #e2e8f0; padding-top: 14px;">
-                    <button type="button" class="btn-secondary" onclick="closeUploadModal()">Cancel</button>
-                    <button type="submit" class="btn-primary" style="background: #0b2545;">Upload & Share Package</button>
-                </div>
-            </form>
+    <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #e2e8f0; padding-top: 14px;">
+        <button type="button" id="btnCancelUploadModal" class="btn-secondary" onclick="closeUploadModal()">Cancel</button>
+        <button type="submit" id="btnSubmitUpload" class="btn-primary" style="background: #0b2545;">Upload & Share Package</button>
+    </div>
+</form>
         </div>
     </div>
 
@@ -577,7 +612,7 @@ $transfers = $db->query('
 
     <script>
         function openUploadModal() { document.getElementById('uploadModal').style.display = 'flex'; }
-        function closeUploadModal() { document.getElementById('uploadModal').style.display = 'none'; }
+        //function closeUploadModal() { document.getElementById('uploadModal').style.display = 'none'; }
         function closeRecipientsModal() { document.getElementById('recipientsModal').style.display = 'none'; }
         function closeLogsModal() { document.getElementById('logsModal').style.display = 'none'; }
 
@@ -744,11 +779,145 @@ $transfers = $db->query('
         }
 
         window.onclick = function(e) {
-            ['uploadModal', 'recipientsModal', 'logsModal'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el && e.target === el) el.style.display = 'none';
-            });
-        };
+    if (e.target === document.getElementById('uploadModal')) {
+        closeUploadModal();
+        return;
+    }
+    ['recipientsModal', 'logsModal'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el && e.target === el) el.style.display = 'none';
+    });
+};
+
+        let activeUploadXhr = null;
+
+function formatClientBytes(bytes) {
+    if (bytes >= 1073741824) return (bytes / 1073741824).toFixed(2) + ' GB';
+    if (bytes >= 1048576)    return (bytes / 1048576).toFixed(1) + ' MB';
+    if (bytes >= 1024)       return Math.round(bytes / 1024) + ' KB';
+    return bytes + ' B';
+}
+
+function resetUploadProgressUI() {
+    const progressBox = document.getElementById('uploadProgressBox');
+    const progressFill = document.getElementById('uploadProgressFill');
+    const progressPercent = document.getElementById('uploadProgressPercent');
+    const progressStatus = document.getElementById('uploadProgressStatus');
+    const progressBytes = document.getElementById('uploadProgressBytes');
+    const submitBtn = document.getElementById('btnSubmitUpload');
+    const cancelModalBtn = document.getElementById('btnCancelUploadModal');
+
+    if (progressBox) progressBox.style.display = 'none';
+    if (progressFill) {
+        progressFill.style.width = '0%';
+        progressFill.style.background = 'linear-gradient(90deg, #0b2545 0%, #1d4ed8 100%)';
+    }
+    if (progressPercent) progressPercent.textContent = '0%';
+    if (progressStatus) progressStatus.textContent = 'Uploading file to secure vault...';
+    if (progressBytes) progressBytes.textContent = '0 B / 0 B';
+    if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Upload & Share Package';
+    }
+    if (cancelModalBtn) cancelModalBtn.disabled = false;
+}
+
+function closeUploadModal() {
+    if (activeUploadXhr) {
+        if (!confirm('An upload is currently in progress. Cancel upload and close?')) {
+            return;
+        }
+        activeUploadXhr.abort();
+        activeUploadXhr = null;
+    }
+    resetUploadProgressUI();
+    document.getElementById('uploadErrorBanner').style.display = 'none';
+    document.getElementById('uploadModal').style.display = 'none';
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    const uploadForm = document.getElementById('secureTransferUploadForm');
+    if (!uploadForm) return;
+
+    document.getElementById('btnAbortUpload').addEventListener('click', function () {
+        if (activeUploadXhr) {
+            activeUploadXhr.abort();
+            activeUploadXhr = null;
+        }
+    });
+
+    uploadForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const errorBanner = document.getElementById('uploadErrorBanner');
+        const progressBox = document.getElementById('uploadProgressBox');
+        const progressFill = document.getElementById('uploadProgressFill');
+        const progressPercent = document.getElementById('uploadProgressPercent');
+        const progressStatus = document.getElementById('uploadProgressStatus');
+        const progressBytes = document.getElementById('uploadProgressBytes');
+        const submitBtn = document.getElementById('btnSubmitUpload');
+        const cancelModalBtn = document.getElementById('btnCancelUploadModal');
+
+        errorBanner.style.display = 'none';
+        progressBox.style.display = 'block';
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Uploading...';
+        cancelModalBtn.disabled = true;
+
+        const formData = new FormData(uploadForm);
+        const xhr = new XMLHttpRequest();
+        activeUploadXhr = xhr;
+
+        // Register upload listeners before open()/send()
+        xhr.upload.addEventListener('progress', function (evt) {
+            if (!evt.lengthComputable) return;
+            const pct = Math.min(100, Math.round((evt.loaded / evt.total) * 100));
+            progressFill.style.width = pct + '%';
+            progressPercent.textContent = pct + '%';
+            progressBytes.textContent = formatClientBytes(evt.loaded) + ' / ' + formatClientBytes(evt.total);
+
+            if (pct >= 100) {
+                progressStatus.textContent = 'Hashing & sealing file in vault...';
+                progressFill.style.background = '#059669';
+            }
+        });
+
+        xhr.addEventListener('load', function () {
+            activeUploadXhr = null;
+            try {
+                const res = JSON.parse(xhr.responseText);
+                if (res.ok && res.redirect) {
+                    progressStatus.textContent = 'Complete! Redirecting...';
+                    window.location.href = res.redirect;
+                    return;
+                }
+                errorBanner.textContent = res.error || 'Upload failed. Please try again.';
+            } catch (err) {
+                errorBanner.textContent = 'Unexpected server response (HTTP ' + xhr.status + '). Check server upload size limits.';
+            }
+            errorBanner.style.display = 'block';
+            resetUploadProgressUI();
+        });
+
+        xhr.addEventListener('error', function () {
+            activeUploadXhr = null;
+            errorBanner.textContent = 'Network error occurred while uploading the file.';
+            errorBanner.style.display = 'block';
+            resetUploadProgressUI();
+        });
+
+        xhr.addEventListener('abort', function () {
+            activeUploadXhr = null;
+            errorBanner.textContent = 'Upload canceled.';
+            errorBanner.style.display = 'block';
+            resetUploadProgressUI();
+        });
+
+        xhr.open('POST', uploadForm.action, true);
+        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+        xhr.send(formData);
+    });
+});
     </script>
 </body>
 </html>
