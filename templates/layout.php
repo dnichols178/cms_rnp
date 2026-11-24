@@ -318,41 +318,9 @@ if ($accepts_webp && file_exists($webp_fs_path)) {
                 </h1>
             <?php endif; ?>
 
-            <?php $is_rfp_node = (strtolower(trim((string)($node['type'] ?? ''))) === 'request_for_proposal');
-
-            if ($is_rfp_node) {
-                ob_start();
-            }
-
-            render_region('content_top', $node['slug'] ?? '', $node ?? null);
-            echo $content ?? '';
-            render_region('content_bottom', $node['slug'] ?? '', $node ?? null);
-
-            if ($is_rfp_node) {
-                $rfp_html = ob_get_clean();
-                echo preg_replace_callback(
-                    '/<a\b([^>]*?href\s*=\s*(["\'])([^"\']*\.pdf(?:\?[^"\']*)?)\2[^>]*)>/i',
-                    static function (array $matches): string {
-                        $full_tag = $matches[0];
-                        $attrs    = $matches[1];
-                        $href     = $matches[3];
-
-                        if (preg_match('/\bdownload\b/i', $attrs)) {
-                            return $full_tag;
-                        }
-
-                        $filename = basename((string) parse_url($href, PHP_URL_PATH));
-                        if ($filename === '' || $filename === '.' || $filename === '/') {
-                            return $full_tag;
-                        }
-
-                        $safe_filename = htmlspecialchars($filename, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-                        return '<a' . $attrs . ' download="' . $safe_filename . '">';
-                    },
-                    $rfp_html
-                ) ?? $rfp_html;
-            }
-            ?>
+            <?php render_region('content_top', $node['slug'] ?? '', $node ?? null); ?>
+            <?= $content ?? '' ?>
+            <?php render_region('content_bottom', $node['slug'] ?? '', $node ?? null); ?>
         </div>
 
         <aside class="sidebar">
